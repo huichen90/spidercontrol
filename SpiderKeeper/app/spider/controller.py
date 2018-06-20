@@ -166,91 +166,97 @@ class JobCtrl(flask_restful.Resource):
         notes="json keys: <br>" + "<br>".join(JOB_INSTANCE_FIELDS),
         parameters=[{
             "name": "project_id",
-            "description": "project id",
+            "description": "工程id 可以用来查询目标网站（工程名可以用目标网站命名）",
             "required": True,
             "paramType": "path",
             "dataType": 'int'
         }, {
             "name": "spider_name",
-            "description": "spider_name",
+            "description": "爬虫名称（可以用板块名和关键词搜索命名）",
             "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "keywords",
+            "description": "关键字",
+            "required": False,
             "paramType": "form",
             "dataType": 'string'
         }, {
             "name": "job_name",
-            "description": "job_name",
+            "description": "任务名称",
             "required": True,
             "paramType": "form",
             "dataType": 'string'
         },{
             "name": "spider_type",
-            "description": "spider_type",
+            "description": "采集形式",
             "required": True,
             "paramType": "form",
             "dataType": 'string'
         },{
-            "name": "startDate",
-            "description": "startDate",
+            "name": "run_time",
+            "description": "长期/设定区间",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "start_date",
+            "description": "任务开始时间",
             "required": False,
             "paramType": "form",
-            "dataType": 'datetime'
+            "dataType": 'string'
+        },{
+            "name": "end_date",
+            "description": "任务结束时间",
+            "required": False,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "spider_freq",
+            "description": "采集频率，以天为单位，需要将其分解映射为满足cron格式需求",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'float'
+        },{
+            "name": "run_type",
+            "description": "periodic/onetime",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "upload_time_type",
+            "description": "设置视频上传时间的方式(任务运行周期内最新/设定区间)",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "upload_time_start_date",
+            "description": "最早的上传时间",
+            "required": False,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "upload_time_end_date",
+            "description": "最晚的上传时间",
+            "required": False,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "video_time_short",
+            "description": "爬去视频的最短时间",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'int'
+        },{
+            "name": "video_time_long",
+            "description": "爬去视频的最长时间",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'int'
         },{
             "name": "spider_arguments",
             "description": "spider_arguments,  split by ','",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "desc",
-            "description": "desc",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "tags",
-            "description": "tags , split by ','",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "run_type",
-            "description": "onetime/periodic",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "priority",
-            "description": "LOW: -1, NORMAL: 0, HIGH: 1, HIGHEST: 2",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'int'
-        }, {
-            "name": "cron_minutes",
-            "description": "@see http://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "cron_hour",
-            "description": "",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "cron_day_of_month",
-            "description": "",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "cron_day_of_week",
-            "description": "",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "cron_month",
-            "description": "",
             "required": False,
             "paramType": "form",
             "dataType": 'string'
@@ -261,10 +267,21 @@ class JobCtrl(flask_restful.Resource):
             job_instance = JobInstance()
             job_instance.spider_name = post_data['spider_name']
             job_instance.project_id = project_id
+            job_instance.keywords = post_data.get('keywords')
+            job_instance.job_name = post_data.get('job_name')
+            job_instance.spider_type = post_data.get('spider_type')
+            job_instance.run_time = post_data.get('run_time')
+            job_instance.start_date = post_data.get('start_date')
+            job_instance.end_date = post_data.get('end_date')
+            job_instance.spider_freq = post_data.get('spider_freq')
+            job_instance.run_type = post_data.get('run_type')
+            job_instance.upload_time_type = post_data.get('upload_time_type')
+            job_instance.upload_time_start_date = post_data.get('upload_time_start_date')
+            job_instance.upload_time_end_date = post_data.get('upload_time_end_date')
+            job_instance.video_time_short = post_data.get('video_time_short')
+            job_instance.video_time_long = post_data.get('video_time_long')
+
             job_instance.spider_arguments = post_data.get('spider_arguments')
-            job_instance.desc = post_data.get('desc')
-            job_instance.tags = post_data.get('tags')
-            job_instance.run_type = post_data['run_type']
             job_instance.priority = post_data.get('priority', 0)
             if job_instance.run_type == "periodic":
                 job_instance.cron_minutes = post_data.get('cron_minutes') or '0'

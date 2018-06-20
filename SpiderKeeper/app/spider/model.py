@@ -4,7 +4,7 @@ from SpiderKeeper.app import db, Base
 
 
 class Project(Base):
-    __tablename__ = 'sk_project'
+    __tablename__ = 'projects'
     '''创建的工程表'''
     project_name = db.Column(db.String(50))
 
@@ -28,7 +28,7 @@ class Project(Base):
 
 
 class SpiderInstance(Base):
-    __tablename__ = 'sk_spider'
+    __tablename__ = 'spiders'
     '''爬虫表'''
     spider_name = db.Column(db.String(100))
     project_id = db.Column(db.INTEGER, nullable=False, index=True)
@@ -95,37 +95,68 @@ class JobPriority():
 
 
 class JobRunType():
-    ONETIME = 'onetime'
-    PERIODIC = 'periodic'
+    ONETIME = '运行一次'
+    PERIODIC = '持续运行'
+
+
+class JobRunTime():
+    LONGTIME = '长期'
+    INTERVAL = '设定区间'
+
+class UploadTimeType():
+    AUTO = '任务运行周期内最新'
+    INTERVAL = '设定区间'
 
 
 class JobInstance(Base):
-    __tablename__ = 'sk_job_instance'
+    __tablename__ = 'job_instance'
     '''爬虫任务表'''
-    job_name = db.Column(db.String(50)) # 任务名称
+    job_name = db.Column(db.String(50))  # 任务名称
     spider_type = db.Column(db.String(50))  # 采集形式
-    spider_name = db.Column(db.String(100), nullable=False, index=True)
-    project_id = db.Column(db.INTEGER, nullable=False, index=True)
+    keywords = db.Column(db.String(50))     # 关键词
+    project_id = db.Column(db.INTEGER, nullable=False, index=True)  # 工程id 可以用来查询目标网站（工程名可以用目标网站命名）
+    spider_name = db.Column(db.String(100), nullable=False, index=True)   # 爬虫名称（可以用板块名和关键词搜索命名）
+    run_time = db.Column(db.String(20))   # 长期/设定区间
+
+    start_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 任务开始时间
+    end_date = db.Column(db.DateTime, default=db.func.current_timestamp())    # 任务结束时间
     tags = db.Column(db.Text)  # job tag(split by , )
+    spider_freq = db.Column(db.Float,default=0)  # 采集频率，以天为单位，需要将其分解映射为满足cron格式需求
+    run_type = db.Column(db.String(20))  # periodic/onetime
+    upload_time_type = db.Column(db.String(20))  # 设置视频上传时间的方式
+    upload_time_start_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 上传时间开始
+    upload_time_end_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 上传时间结束
+    video_time_short = db.Column(db.Integer)   # 视频最短时间
+    video_time_long = db.Column(db.Integer)    # 视频最长时间
     spider_arguments = db.Column(db.Text)  # job execute arguments(split by , ex.: arg1=foo,arg2=bar)
-    priority = db.Column(db.INTEGER)
-    desc = db.Column(db.Text)
+    priority = db.Column(db.INTEGER)       # 优先级
     cron_minutes = db.Column(db.String(20), default="0")
     cron_hour = db.Column(db.String(20), default="*")
     cron_day_of_month = db.Column(db.String(20), default="*")
     cron_day_of_week = db.Column(db.String(20), default="*")
     cron_month = db.Column(db.String(20), default="*")
     enabled = db.Column(db.INTEGER, default=0)  # 0/-1
-    run_type = db.Column(db.String(20))  # periodic/onetime
+
 
     def to_dict(self):
         return dict(
             job_instance_id=self.id,
-            job_name = self.job_name,
-            spider_type = self.spider_type,
+            job_name=self.job_name,
+            spider_type=self.spider_type,
+            project_id=self.project_id,
             spider_name=self.spider_name,
+            run_time=self.run_time,
+            start_date=self.start_date,
+            end_date=self.end_date,
             tags=self.tags.split(',') if self.tags else None,
+            spider_freq=self.spider_freq,
+            run_type=self.run_type,
+            upload_time_type=self.upload_time_type,
+            upload_time_start_date=self.upload_time_start_date,
+            upload_time_end_date=self.upload_time_end_date,
             spider_arguments=self.spider_arguments,
+            video_time_short=self.video_time_short,
+            video_time_long=self.video_time_long,
             priority=self.priority,
             desc=self.desc,
             cron_minutes=self.cron_minutes,
@@ -134,7 +165,7 @@ class JobInstance(Base):
             cron_day_of_week=self.cron_day_of_week,
             cron_month=self.cron_month,
             enabled=self.enabled == 0,
-            run_type=self.run_type
+
 
         )
 
