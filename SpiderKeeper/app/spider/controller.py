@@ -147,6 +147,14 @@ JOB_INSTANCE_FIELDS.remove('date_created')
 JOB_INSTANCE_FIELDS.remove('date_modified')
 
 
+
+class JobSCtrl(flask_restful.Resource):
+    @swagger.operation(
+        summary='list job instance',
+        )
+    def get(self):
+        return [job_instance.to_dict() for job_instance in
+                JobInstance.query.filter_by(run_type="持续运行").all()]
 class JobCtrl(flask_restful.Resource):
     @swagger.operation(
         summary='list job instance',
@@ -158,45 +166,46 @@ class JobCtrl(flask_restful.Resource):
             "dataType": 'int'
         }])
     def get(self, project_id):
+        # job_instances = JobInstance.query.filter_by(run_type="持续运行", project_id=project_id).all()
+        # rst = []
+        # print(job_instances)
+        # for job_instance in job_instances:
+        #     rst.append(job_instance.to_dict())
+        #
+        # return rst
         return [job_instance.to_dict() for job_instance in
-                JobInstance.query.filter_by(run_type="periodic", project_id=project_id).all()]
+                JobInstance.query.filter_by(run_type="持续运行", project_id=project_id).all()]
 
     @swagger.operation(
         summary='add job instance',
         notes="json keys: <br>" + "<br>".join(JOB_INSTANCE_FIELDS),
         parameters=[{
+            "name": "job_name",
+            "description": "任务名称(20个字以内)",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
+            "name": "spider_name",
+            "description": "采集形式(关键词采集/板块采集)--",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },{
             "name": "project_id",
-            "description": "工程id 可以用来查询目标网站（工程名可以用目标网站命名）",
+            "description": "目标网站（工程id 可以用来查询工程名可以用目标网站命名）",
             "required": True,
             "paramType": "path",
             "dataType": 'int'
-        }, {
-            "name": "spider_name",
-            "description": "爬虫名称（可以用板块名和关键词搜索命名）",
-            "required": True,
-            "paramType": "form",
-            "dataType": 'string'
         },{
             "name": "keywords",
-            "description": "关键字",
-            "required": False,
+            "description": "关键字/板块名",
+            "required": True,
             "paramType": "form",
             "dataType": 'string'
         }, {
-            "name": "job_name",
-            "description": "任务名称",
-            "required": True,
-            "paramType": "form",
-            "dataType": 'string'
-        },{
-            "name": "spider_type",
-            "description": "采集形式",
-            "required": True,
-            "paramType": "form",
-            "dataType": 'string'
-        },{
             "name": "run_time",
-            "description": "长期/设定区间",
+            "description": "任务运行时间（长期/设定区间）",
             "required": True,
             "paramType": "form",
             "dataType": 'string'
@@ -220,7 +229,7 @@ class JobCtrl(flask_restful.Resource):
             "dataType": 'float'
         },{
             "name": "run_type",
-            "description": "periodic/onetime",
+            "description": "持续运行/运行一次",
             "required": True,
             "paramType": "form",
             "dataType": 'string'
@@ -265,14 +274,15 @@ class JobCtrl(flask_restful.Resource):
         post_data = request.form
         if post_data:
             job_instance = JobInstance()
+            job_instance.job_name = post_data.get('job_name')
             job_instance.spider_name = post_data['spider_name']
             job_instance.project_id = project_id
             job_instance.keywords = post_data.get('keywords')
-            job_instance.job_name = post_data.get('job_name')
-            job_instance.spider_type = post_data.get('spider_type')
-            job_instance.run_time = post_data.get('run_time')
-            job_instance.start_date = post_data.get('start_date')
-            job_instance.end_date = post_data.get('end_date')
+            # job_instance.spider_type = post_data.get('spider_type')
+            job_instance.run_time = post_data.get('run_time')    # 运行时间
+            if job_instance.run_time != '长期':
+                job_instance.start_date = post_data.get('start_date')
+                job_instance.end_date = post_data.get('end_date')
             job_instance.spider_freq = post_data.get('spider_freq')
             job_instance.run_type = post_data.get('run_type')
             job_instance.upload_time_type = post_data.get('upload_time_type')
@@ -283,10 +293,11 @@ class JobCtrl(flask_restful.Resource):
 
             job_instance.spider_arguments = post_data.get('spider_arguments')
             job_instance.priority = post_data.get('priority', 0)
-            if job_instance.run_type == "periodic":
+            if job_instance.run_type == "持续运行":
                 job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
                 job_instance.cron_hour = post_data.get('cron_hour') or '*'
-                job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                job_instance.cron_day_of_month = '*/'+str(post_data.get('spider_freq'))
+                # job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
                 job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                 job_instance.cron_month = post_data.get('cron_month') or '*'
             db.session.add(job_instance)
@@ -456,6 +467,7 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 api.add_resource(ProjectCtrl, "/api/projects")
 api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
+api.add_resource(JobSCtrl, "/api/projects/jobs")
 api.add_resource(JobCtrl, "/api/projects/<project_id>/jobs")
 api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
 api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")

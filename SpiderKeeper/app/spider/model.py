@@ -1,4 +1,6 @@
 import datetime
+import json
+
 from sqlalchemy import desc
 from SpiderKeeper.app import db, Base
 
@@ -112,10 +114,10 @@ class JobInstance(Base):
     __tablename__ = 'job_instance'
     '''爬虫任务表'''
     job_name = db.Column(db.String(50))  # 任务名称
-    spider_type = db.Column(db.String(50))  # 采集形式
+    # spider_type = db.Column(db.String(50))  # 采集形式
     keywords = db.Column(db.String(50))     # 关键词
     project_id = db.Column(db.INTEGER, nullable=False, index=True)  # 工程id 可以用来查询目标网站（工程名可以用目标网站命名）
-    spider_name = db.Column(db.String(100), nullable=False, index=True)   # 爬虫名称（可以用板块名和关键词搜索命名）
+    spider_name = db.Column(db.String(100), nullable=False, index=True)   # 采集形式（关键词采集/板块采集）
     run_time = db.Column(db.String(20))   # 长期/设定区间
 
     start_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 任务开始时间
@@ -139,35 +141,37 @@ class JobInstance(Base):
 
 
     def to_dict(self):
-        return dict(
-            job_instance_id=self.id,
-            job_name=self.job_name,
-            spider_type=self.spider_type,
-            project_id=self.project_id,
-            spider_name=self.spider_name,
-            run_time=self.run_time,
-            start_date=self.start_date,
-            end_date=self.end_date,
-            tags=self.tags.split(',') if self.tags else None,
-            spider_freq=self.spider_freq,
-            run_type=self.run_type,
-            upload_time_type=self.upload_time_type,
-            upload_time_start_date=self.upload_time_start_date,
-            upload_time_end_date=self.upload_time_end_date,
-            spider_arguments=self.spider_arguments,
-            video_time_short=self.video_time_short,
-            video_time_long=self.video_time_long,
-            priority=self.priority,
-            desc=self.desc,
-            cron_minutes=self.cron_minutes,
-            cron_hour=self.cron_hour,
-            cron_day_of_month=self.cron_day_of_month,
-            cron_day_of_week=self.cron_day_of_week,
-            cron_month=self.cron_month,
-            enabled=self.enabled == 0,
+        return {'id': self.id,
+                'date_created': self.date_created.strftime('%Y-%m-%d') if self.date_created else None,
+                'job_instance_id': self.id,
+                'job_name': self.job_name,
+                'keywords': self.keywords,
+                # spider_type=self.spider_type,
+                "project_id": self.project_id,
+                'spider_name': self.spider_name,
+                'run_time': self.run_time,
+                'start_date': self.start_date.strftime('%Y-%m-%d') if self.start_date else None,
+                'end_date': self.end_date.strftime('%Y-%m-%d') if self.end_date else None,
+                'tags': self.tags.split(',') if self.tags else None,
+                'spider_freq': self.spider_freq,
+                'run_type': self.run_type,
+                'upload_time_type': self.upload_time_type,
+                'upload_time_start_date': self.upload_time_start_date.strftime('%Y-%m-%d') if self.upload_time_start_date else None,
+                'upload_time_end_date': self.upload_time_end_date.strftime('%Y-%m-%d') if self.upload_time_end_date else None,
+                'spider_arguments': self.spider_arguments,
+                'video_time_short': self.video_time_short,
+                'video_time_long': self.video_time_long,
+                'priority': self.priority,
+                # desc=self.desc,
+                'cron_minutes': self.cron_minutes,
+                'cron_hour': self.cron_hour,
+                'cron_day_of_month': self.cron_day_of_month,
+                'cron_day_of_week': self.cron_day_of_week,
+                'cron_month': self.cron_month,
+                'enabled': self.enabled == 0, }
 
 
-        )
+
 
     @classmethod
     def list_job_instance_by_project_id(cls, project_id):
