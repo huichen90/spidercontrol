@@ -65,15 +65,15 @@ class SpiderInstance(Base):
     @classmethod
     def list_spiders(cls, project_id):
         sql_last_runtime = '''
-            select * from (select a.spider_name,b.date_created from sk_job_instance as a
-                left join sk_job_execution as b
+            select * from (select a.spider_name,b.date_created from job_instance as a
+                left join job_execution as b
                 on a.id = b.job_instance_id
                 order by b.date_created desc) as c
                 group by c.spider_name
             '''
         sql_avg_runtime = '''
-            select a.spider_name,avg(end_time-start_time) from sk_job_instance as a
-                left join sk_job_execution as b
+            select a.spider_name,avg(end_time-start_time) from job_instance as a
+                left join job_execution as b
                 on a.id = b.job_instance_id
                 where b.end_time is not null
                 group by a.spider_name
@@ -187,7 +187,7 @@ class SpiderStatus():
 
 
 class JobExecution(Base):
-    __tablename__ = 'sk_job_execution'
+    __tablename__ = 'job_execution'
     '''记录爬虫的执行情况'''
     project_id = db.Column(db.INTEGER, nullable=False, index=True)
     service_job_execution_id = db.Column(db.String(50), nullable=False, index=True)  # 服务器作业执行ID
