@@ -4,7 +4,7 @@ import tempfile
 
 import flask_restful
 import requests
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from flask import abort
 from flask import flash
 from flask import redirect
@@ -153,8 +153,57 @@ class JobSCtrl(flask_restful.Resource):
         summary='list job instance',
     )
     def get(self):
-        return [job_instance.to_dict() for job_instance in
-                JobInstance.query.filter_by(run_type="持续运行").all()]
+        job_instances = JobInstance.query.all()
+        rsts = []
+        for job_instance in job_instances:
+            if job_instance.run_time == '长期':
+                run_time = '长期'
+            else:
+                start_date = job_instance.start_date,
+                end_date = job_instance.end_date,
+                run_time = str(start_date) + '至' + str(end_date)
+            if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
+                job_status = '运行中'
+            elif job_instance.enabled == -1:
+                job_status = '已暂停'
+            else:
+                job_status = '运行完成'
+            rst = {
+                'job_id': job_instance.id,
+                'job_name': job_instance.job_name,
+                'spider_type': job_instance.spider_name,
+                'spider_freq': job_instance.spider_freq,
+                'run_time': run_time,
+                'run_times': job_instance.run_type,
+                'job_status': job_status,
+                'enabled': job_instance.enabled,
+                }
+            rsts.append(rst)
+        return jsonify(rsts)
+
+    @swagger.operation(
+        summary='更改运行状态',
+        parameters=[{
+            "name": "job_id",
+            "description": "job_id 任务的id",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'int',
+        },
+            {
+            "name": "job_status",
+            "description": "任务的运行状态",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'int',
+        }]
+    )
+    def put(self):
+        put_data = request.form
+        job_instance = JobInstance.query.filter_by(id=put_data['job_id']).first()
+        job_instance.enabled = put_data['job_status']
+        db.session.commit()
+
 
 
 class JobDetail(flask_restful.Resource):
@@ -169,8 +218,37 @@ class JobDetail(flask_restful.Resource):
         }]
     )
     def get(self,job_id):
-        return [job_instance.to_dict() for job_instance in
-                JobInstance.query.filter_by(id=job_id).all()]
+        try:
+            job_instance = JobInstance.query.filter_by(id=job_id).first()
+            if job_instance.run_time == '长期':
+                run_time = '长期'
+            else:
+                start_date = job_instance.start_date,
+                end_date = job_instance.end_date,
+                run_time = str(start_date) + '至' + str(end_date)
+            if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
+                job_status = '运行中'
+            elif job_instance.enabled == -1:
+                job_status = '已暂停'
+            else:
+                job_status = '运行完成'
+            rst = {
+                'job_status': job_status,
+                'job_name': job_instance.job_name,
+                'spider_type': job_instance.spider_name,
+                'target_web': Project.query.filter_by(id=job_instance.project_id).first().project_name,
+                'spider_content': job_instance.keywords,
+                'run_time': run_time,
+                'spider_freq': job_instance.spider_freq,
+                'run_times': job_instance.run_type,
+                'video_upload_time': job_instance.upload_time_type,
+                'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
+                'enabled': job_instance.enabled,
+            }
+            return jsonify({'rst': rst, 'code': 200})
+
+        except:
+            return jsonify({'rst': False, 'code': 404})
 
 
 class JobCtrl(flask_restful.Resource):
@@ -496,9 +574,9 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 # api.add_resource(ProjectCtrl, "/api/projects")
 # api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 # api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
+api.add_resource(JobCtrl, "/api/project/jobs")                  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")                      # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")            # 任务详情
-api.add_resource(JobCtrl, "/api/project/jobs")                  # 新增任务
 # api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
 # api.add_resource(JobExecutionDetailCtrl, "/api/projects/<project_id>/jobexecs/<job_exec_id>")
