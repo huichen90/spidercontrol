@@ -159,9 +159,9 @@ class JobSCtrl(flask_restful.Resource):
             if job_instance.run_time == '长期':
                 run_time = '长期'
             else:
-                start_date = job_instance.start_date,
-                end_date = job_instance.end_date,
-                run_time = str(start_date) + '至' + str(end_date)
+                start_date = job_instance.start_date.strftime('%Y-%m-%d'),
+                end_date = job_instance.end_date.strftime('%Y-%m-%d'),
+                run_time = str(start_date[0]) + '至' + str(end_date[0])
             if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
                 job_status = '运行中'
             elif job_instance.enabled == -1:
@@ -220,12 +220,15 @@ class JobDetail(flask_restful.Resource):
     def get(self,job_id):
         try:
             job_instance = JobInstance.query.filter_by(id=job_id).first()
+            # print(I.split('=') for I in job_instance.spider_arguments.split(","))
+            print(dict((job_instance.spider_arguments.split("="),)))
             if job_instance.run_time == '长期':
                 run_time = '长期'
             else:
-                start_date = job_instance.start_date,
-                end_date = job_instance.end_date,
-                run_time = str(start_date) + '至' + str(end_date)
+                start_date = job_instance.start_date.strftime('%Y-%m-%d'),
+                end_date = job_instance.end_date.strftime('%Y-%m-%d'),
+                print(start_date)
+                run_time = str(start_date[0]) + '至' + str(end_date[0])
             if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
                 job_status = '运行中'
             elif job_instance.enabled == -1:
@@ -244,11 +247,12 @@ class JobDetail(flask_restful.Resource):
                 'video_upload_time': job_instance.upload_time_type,
                 'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
                 'enabled': job_instance.enabled,
+                'server': dict((job_instance.spider_arguments.split("="),))['daemon']
             }
             return jsonify({'rst': rst, 'code': 200})
 
-        except:
-            return jsonify({'rst': False, 'code': 404})
+        except Exception as e :
+            return jsonify({'rst': False, 'code': 404,'error': e})
 
 
 class JobCtrl(flask_restful.Resource):
