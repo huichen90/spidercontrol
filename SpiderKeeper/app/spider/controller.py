@@ -14,7 +14,7 @@ from flask_restful_swagger import swagger
 from werkzeug.utils import secure_filename
 
 from SpiderKeeper.app import db, api, agent, app
-from SpiderKeeper.app.spider.model import JobInstance, Project, JobExecution, SpiderInstance, JobRunType
+from SpiderKeeper.app.spider.model import JobInstance, Project, JobExecution, SpiderInstance, JobRunType, Videoitems
 from SpiderKeeper.config import SERVERS
 
 api_spider_bp = Blueprint('spider', __name__)
@@ -147,7 +147,51 @@ JOB_INSTANCE_FIELDS.remove('id')
 JOB_INSTANCE_FIELDS.remove('date_created')
 JOB_INSTANCE_FIELDS.remove('date_modified')
 
+class VideosCtrl(flask_restful.Resource):
+    @swagger.operation(
+        summary='list of videos',
+    )
+    def get(self):
+        videos = Videoitems.query.all()
+        rsts = []
+        for video in videos:
+            rst = {
+                'title': video.title,
+                'spider_time': video.spider_time,
+                'site_name': video.site_name,
+                'job_name': JobInstance.query.filter_by(id=video.task_id).first().job_name,
 
+            }
+            rsts.append(rst)
+        return jsonify(rsts)
+
+
+class VideoDetail(flask_restful.Resource):
+    @swagger.operation(
+        summary='list of videos',
+        parameters=[{
+            "name": "id",
+            "description": "video的id",
+            "required": True,
+            "paramType": "path",
+            "dataType": 'int',
+        },]
+    )
+    def get(self,id):
+        video = Videoitems.query.filter_by(id=id).first()
+
+        rst = {
+                'title': video.title,
+                'spider_time': video.spider_time,
+                'site_name': video.site_name,
+                'job_name': JobInstance.query.filter_by(id=video.task_id).first().job_name,
+                'url': video.url,
+                'upload_time': video.upload_time,
+                'info': video.info,
+
+            }
+
+        return jsonify(rst)
 class JobSCtrl(flask_restful.Resource):
     @swagger.operation(
         summary='list job instance',
@@ -217,11 +261,14 @@ class JobDetail(flask_restful.Resource):
             "dataType": 'int'
         }]
     )
-    def get(self,job_id):
+    def get(self, job_id):
         try:
             job_instance = JobInstance.query.filter_by(id=job_id).first()
             # print(I.split('=') for I in job_instance.spider_arguments.split(","))
-            print(dict((job_instance.spider_arguments.split("="),)))
+            if job_instance.spider_arguments:
+                daemon = dict((job_instance.spider_arguments.split("="),))['daemon']
+            else:
+                daemon = None
             if job_instance.run_time == '长期':
                 run_time = '长期'
             else:
@@ -247,11 +294,11 @@ class JobDetail(flask_restful.Resource):
                 'video_upload_time': job_instance.upload_time_type,
                 'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
                 'enabled': job_instance.enabled,
-                'server': dict((job_instance.spider_arguments.split("="),))['daemon']
+                'server': daemon
             }
             return jsonify({'rst': rst, 'code': 200})
 
-        except Exception as e :
+        except Exception as e:
             return jsonify({'rst': False, 'code': 404,'error': e})
 
 
@@ -581,6 +628,9 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 api.add_resource(JobCtrl, "/api/project/jobs")                  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")                      # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")            # 任务详情
+api.add_resource(VideosCtrl, "/api/joblist/videos")            # 任务详情
+api.add_resource(VideoDetail, "/api/joblist/videos/<id>")            # 任务详情
+
 # api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
 # api.add_resource(JobExecutionDetailCtrl, "/api/projects/<project_id>/jobexecs/<job_exec_id>")
