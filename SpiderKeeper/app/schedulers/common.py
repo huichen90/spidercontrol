@@ -6,20 +6,20 @@ from SpiderKeeper.app.spider.model import Project, JobInstance, SpiderInstance
 
 
 def sync_job_execution_status_job():
-    '''
+    """
     sync job execution running status
     :return:
-    '''
+    """
     for project in Project.query.all():
         agent.sync_job_status(project)
     app.logger.debug('[sync_job_execution_status]')
 
 
 def sync_spiders():
-    '''
+    """
     sync spiders
     :return:
-    '''
+    """
     for project in Project.query.all():
         spider_instance_list = agent.get_spider_list(project)
         SpiderInstance.update_spider_instances(project.id, spider_instance_list)
@@ -66,7 +66,9 @@ def reload_runnable_spider_job_execution():
                               second=0,
                               max_instances=999,
                               misfire_grace_time=60 * 60,
-                              coalesce=True)
+                              coalesce=True,
+                              start_date=job_instance.start_date,
+                              end_date=job_instance.end_date)
             app.logger.info('[load_spider_job][project:%s][spider_name:%s][job_instance_id:%s][job_id:%s]' % (
                 job_instance.project_id, job_instance.spider_name, job_instance.id, job_id))
     # remove invalid jobs

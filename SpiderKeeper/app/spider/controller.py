@@ -156,6 +156,8 @@ class VideosCtrl(flask_restful.Resource):
         rsts = []
         for video in videos:
             rst = {
+                'video_id': video.id,
+                'task_id': video.task_id,
                 'title': video.title,
                 'spider_time': video.spider_time,
                 'site_name': video.site_name,
@@ -168,17 +170,17 @@ class VideosCtrl(flask_restful.Resource):
 
 class VideoDetail(flask_restful.Resource):
     @swagger.operation(
-        summary='list of videos',
+        summary='detail of videos',
         parameters=[{
-            "name": "id",
+            "name": "video_id",
             "description": "video的id",
             "required": True,
             "paramType": "path",
             "dataType": 'int',
-        },]
+        }, ]
     )
-    def get(self,id):
-        video = Videoitems.query.filter_by(id=id).first()
+    def get(self, video_id):
+        video = Videoitems.query.filter_by(id=video_id).first()
 
         rst = {
                 'title': video.title,
@@ -629,7 +631,7 @@ api.add_resource(JobCtrl, "/api/project/jobs")                  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")                      # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")            # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos")            # 任务详情
-api.add_resource(VideoDetail, "/api/joblist/videos/<id>")            # 任务详情
+api.add_resource(VideoDetail, "/api/joblist/videos/<video_id>")            # 任务详情
 
 # api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")

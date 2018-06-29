@@ -123,7 +123,7 @@ class JobInstance(Base):
     start_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 任务开始时间
     end_date = db.Column(db.DateTime, default=db.func.current_timestamp())    # 任务结束时间
     tags = db.Column(db.Text)  # job tag(split by , )
-    spider_freq = db.Column(db.Float,default=0)  # 采集频率，以天为单位，需要将其分解映射为满足cron格式需求
+    spider_freq = db.Column(db.Float, default=0)  # 采集频率，以天为单位，需要将其分解映射为满足cron格式需求
     run_type = db.Column(db.String(20))  # periodic/onetime
     upload_time_type = db.Column(db.String(20))  # 设置视频上传时间的方式
     upload_time_start_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 上传时间开始
@@ -138,7 +138,6 @@ class JobInstance(Base):
     cron_day_of_week = db.Column(db.String(20), default="*")
     cron_month = db.Column(db.String(20), default="*")
     enabled = db.Column(db.INTEGER, default=0)  # 0/-1   # 任务状态
-
 
     def to_dict(self):
         return {'id': self.id,

@@ -4,6 +4,7 @@ from functools import reduce
 
 from SpiderKeeper.app import db
 from SpiderKeeper.app.spider.model import SpiderStatus, JobExecution, JobInstance, Project, JobPriority
+from SpiderKeeper.app.util.dates import dts2ts
 
 
 class SpiderServiceProxy(object):
@@ -121,12 +122,17 @@ class SpiderAgent():
     def start_spider(self, job_instance):
         project = Project.find_project_by_id(job_instance.project_id)
         spider_name = job_instance.spider_name
-        taskId = job_instance.id
+        task_id = job_instance.id
         arguments = {}
         if job_instance.spider_arguments:
             arguments = dict(map(lambda x: x.split("="), job_instance.spider_arguments.split(",")))
         threshold = 0
-        arguments['taskId'] = taskId   # 将任务id加入到爬虫
+        arguments['keywords'] = job_instance.keywords
+        arguments['video_time_short'] = job_instance.video_time_short
+        arguments['video_time_long'] = job_instance.video_time_long
+        arguments['startDate'] = dts2ts(job_instance.upload_time_start_date)
+        arguments['endDate'] = dts2ts(job_instance.upload_time_end_date)
+        arguments['task_id'] = task_id   # 将任务id加入到爬虫
         daemon_size = len(self.spider_service_instances)
         if job_instance.priority == JobPriority.HIGH:
             threshold = int(daemon_size / 2)
