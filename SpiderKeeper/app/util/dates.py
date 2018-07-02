@@ -7,8 +7,7 @@ def dts2ts(datestr):
     :param datestr:
     :return: timeStamp
     """
-
-    timeArray = time.strptime(datestr, "%Y-%m-%d")
+    timeArray = time.strptime(datestr.strftime('%Y-%m-%d'), "%Y-%m-%d")
     timeStamp = int(time.mktime(timeArray))
     return timeStamp
 
