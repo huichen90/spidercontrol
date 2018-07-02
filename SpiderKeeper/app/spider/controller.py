@@ -147,6 +147,28 @@ JOB_INSTANCE_FIELDS.remove('id')
 JOB_INSTANCE_FIELDS.remove('date_created')
 JOB_INSTANCE_FIELDS.remove('date_modified')
 
+
+class VideosCtrl(flask_restful.Resource):
+    @swagger.operation(
+        summary='list of videos',
+    )
+    def get(self):
+        videos = Videoitems.query.order_by(db.desc(Videoitems.id)).all()
+        rsts = []
+        for video in videos:
+            rst = {
+                'video_id': video.id,
+                'task_id': video.task_id,
+                'title': video.title,
+                'spider_time': video.spider_time,
+                'site_name': video.site_name,
+                'job_name': JobInstance.query.filter_by(id=video.task_id).first().job_name,
+
+            }
+            rsts.append(rst)
+        return jsonify(rsts)
+
+
 class VideosCtrl(flask_restful.Resource):
     @swagger.operation(
         summary='list of videos',
@@ -586,15 +608,37 @@ class JobDetailCtrl(flask_restful.Resource):
 
 class JobExecutionCtrl(flask_restful.Resource):
     @swagger.operation(
-        summary='list job execution status',
-        parameters=[{
-            "name": "project_id",
-            "description": "project id",
-            "required": True,
-            "paramType": "path",
-            "dataType": 'int'
-        }])
+        summary='list job execution ',
+        # parameters=[{
+        #     "name": "project_id",
+        #     "description": "project id",
+        #     "required": True,
+        #     "paramType": "path",
+        #     "dataType": 'int'
+        # }]
+        )
     def get(self, project_id):
+        job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id)).all()
+        rsts = []
+        for job_excution in job_excutions:
+            job_instance = JobInstance.query.filter_by(id=job_excution.job_instance_id).first()
+            if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
+                job_status = '运行中'
+            elif job_instance.enabled == -1:
+                job_status = '已暂停'
+            else:
+                job_status = '运行完成'
+            rst = {
+                'job_id': job_excution.job_instance_id,
+                'job_name': job_instance.job_name,
+                'date': job_excution.start_time.strftime('%Y-%m-%d'),
+                'job_status': job_status,
+                'enabled': job_instance.enabled,
+                # 'video_num':
+                }
+            rsts.append(rst)
+        return jsonify(rsts)
+
         return JobExecution.list_jobs(project_id)
 
 
@@ -629,11 +673,11 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 # api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 # api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
 api.add_resource(JobCtrl, "/api/project/add_jobs")                  # 新增任务
-api.add_resource(JobSCtrl, "/api/joblist")                      # 任务列表
-api.add_resource(JobDetail, "/api/joblist/<job_id>")            # 任务详情
-api.add_resource(VideosCtrl, "/api/joblist/videos")            # 任务详情
-api.add_resource(VideoDetail, "/api/joblist/videos/<video_id>")            # 任务详情
-
+api.add_resource(JobSCtrl, "/api/joblist")                       # 任务列表
+api.add_resource(JobDetail, "/api/joblist/<job_id>")             # 任务详情
+api.add_resource(VideosCtrl, "/api/joblist/videos")              # 视频列表
+api.add_resource(VideoDetail, "/api/joblist/videos/<video_id>")  # 视频详情
+api.add_resource(JobExecutionCtrl, "/api/job_executions/<job_executions_id>")  # 任务执行列表
 # api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
 # api.add_resource(JobExecutionDetailCtrl, "/api/projects/<project_id>/jobexecs/<job_exec_id>")
