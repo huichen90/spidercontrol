@@ -152,7 +152,7 @@ class VideosCtrl(flask_restful.Resource):
         summary='list of videos',
     )
     def get(self):
-        videos = Videoitems.query.all()
+        videos = Videoitems.query.order_by(db.desc(Videoitems.id)).all()
         rsts = []
         for video in videos:
             rst = {
@@ -199,7 +199,7 @@ class JobSCtrl(flask_restful.Resource):
         summary='list job instance',
     )
     def get(self):
-        job_instances = JobInstance.query.all()
+        job_instances = JobInstance.query.order_by(db.desc(JobInstance.id)).all()
         rsts = []
         for job_instance in job_instances:
             if job_instance.run_time == '长期':
