@@ -454,10 +454,11 @@ class JobCtrl(flask_restful.Resource):
             # job_instance.spider_arguments = post_data.get('spider_arguments')
             job_instance.priority = post_data.get('priority', 0)
             if job_instance.run_type == "持续运行":
-                job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
+                # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
+                job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
                 job_instance.cron_hour = post_data.get('cron_hour') or '*'
-                job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
-                # job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
+                job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
                 job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                 job_instance.cron_month = post_data.get('cron_month') or '*'
             db.session.add(job_instance)
@@ -627,7 +628,7 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 # api.add_resource(ProjectCtrl, "/api/projects")
 # api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 # api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
-api.add_resource(JobCtrl, "/api/project/jobs")                  # 新增任务
+api.add_resource(JobCtrl, "/api/project/add_jobs")                  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")                      # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")            # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos")            # 任务详情
