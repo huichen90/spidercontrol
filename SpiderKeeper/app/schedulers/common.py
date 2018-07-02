@@ -50,7 +50,7 @@ def reload_runnable_spider_job_execution():
     app.logger.debug('[running_job_ids] %s' % ','.join(running_job_ids))
     available_job_ids = set()
     # add new job to schedule
-    for job_instance in JobInstance.query.filter_by(enabled=0, run_type="periodic").all():
+    for job_instance in JobInstance.query.filter_by(enabled=0, run_type="持续运行").all():
         job_id = "spider_job_%s:%s" % (job_instance.id, int(time.mktime(job_instance.date_modified.timetuple())))
         available_job_ids.add(job_id)
         if job_id not in running_job_ids:
@@ -67,8 +67,8 @@ def reload_runnable_spider_job_execution():
                               max_instances=999,
                               misfire_grace_time=60 * 60,
                               coalesce=True,
-                              start_date=job_instance.start_date,
-                              end_date=job_instance.end_date)
+                              start_date=job_instance.start_date.strftime('%Y-%m-%d'),
+                              end_date=job_instance.end_date.strftime('%Y-%m-%d'))
             app.logger.info('[load_spider_job][project:%s][spider_name:%s][job_instance_id:%s][job_id:%s]' % (
                 job_instance.project_id, job_instance.spider_name, job_instance.id, job_id))
     # remove invalid jobs
