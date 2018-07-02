@@ -677,7 +677,7 @@ api.add_resource(JobSCtrl, "/api/joblist")                       # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")             # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos")              # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/videos/<video_id>")  # 视频详情
-api.add_resource(JobExecutionCtrl, "/api/job_executions/<job_executions_id>")  # 任务执行列表
+api.add_resource(JobExecutionCtrl, "/api/job_executions")  # 任务执行列表
 # api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
 # api.add_resource(JobExecutionDetailCtrl, "/api/projects/<project_id>/jobexecs/<job_exec_id>")
