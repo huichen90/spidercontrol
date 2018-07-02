@@ -617,7 +617,7 @@ class JobExecutionCtrl(flask_restful.Resource):
         #     "dataType": 'int'
         # }]
         )
-    def get(self, project_id):
+    def get(self):
         job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id)).all()
         rsts = []
         for job_excution in job_excutions:
