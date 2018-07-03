@@ -83,6 +83,10 @@ def reload_runnable_spider_job_execution():
                               end_date=job_instance.end_date.strftime('%Y-%m-%d'))
             app.logger.info('[load_spider_job][project:%s][spider_name:%s][job_instance_id:%s][job_id:%s]' % (
                 job_instance.project_id, job_instance.spider_name, job_instance.id, job_id))
+        if job_instance.run_type == '运行一次':
+            job_instance.enabled = -1
+            db.session.commit()
+
     # remove invalid jobs
     for invalid_job_id in filter(lambda job_id: job_id.startswith("spider_job_"),
                                  running_job_ids.difference(available_job_ids)):
