@@ -150,28 +150,7 @@ JOB_INSTANCE_FIELDS.remove('date_modified')
 
 class VideosCtrl(flask_restful.Resource):
     @swagger.operation(
-        summary='list of videos',
-    )
-    def get(self):
-        videos = Videoitems.query.order_by(db.desc(Videoitems.id)).all()
-        rsts = []
-        for video in videos:
-            rst = {
-                'video_id': video.id,
-                'task_id': video.task_id,
-                'title': video.title,
-                'spider_time': video.spider_time,
-                'site_name': video.site_name,
-                'job_name': JobInstance.query.filter_by(id=video.task_id).first().job_name,
-
-            }
-            rsts.append(rst)
-        return jsonify(rsts)
-
-
-class VideosCtrl(flask_restful.Resource):
-    @swagger.operation(
-        summary='list of videos',
+        summary='采集结果明细',
     )
     def get(self):
         videos = Videoitems.query.order_by(db.desc(Videoitems.id)).all()
@@ -192,7 +171,7 @@ class VideosCtrl(flask_restful.Resource):
 
 class VideoDetail(flask_restful.Resource):
     @swagger.operation(
-        summary='detail of videos',
+        summary='视频详情',
         parameters=[{
             "name": "video_id",
             "description": "video的id",
@@ -218,7 +197,7 @@ class VideoDetail(flask_restful.Resource):
         return jsonify(rst)
 class JobSCtrl(flask_restful.Resource):
     @swagger.operation(
-        summary='list job instance',
+        summary='任务列表',
     )
     def get(self):
         job_instances = JobInstance.query.order_by(db.desc(JobInstance.id)).all()
@@ -258,25 +237,19 @@ class JobSCtrl(flask_restful.Resource):
             "paramType": "form",
             "dataType": 'int',
         },
-            {
-            "name": "job_status",
-            "description": "任务的运行状态",
-            "required": True,
-            "paramType": "form",
-            "dataType": 'int',
-        }]
-    )
+        ])
     def put(self):
         put_data = request.form
         job_instance = JobInstance.query.filter_by(id=put_data['job_id']).first()
-        job_instance.enabled = put_data['job_status']
+        job_instance.enabled = -1 if job_instance.enabled == 0 else 0
         db.session.commit()
 
+        db.session.commit()
 
 
 class JobDetail(flask_restful.Resource):
     @swagger.operation(
-        summary='job detail',
+        summary='任务详情',
         parameters=[{
             "name": "job_id",
             "description": "job_id 任务的id",
@@ -328,7 +301,9 @@ class JobDetail(flask_restful.Resource):
 
 class JobCtrl(flask_restful.Resource):
     @swagger.operation(
-        summary='list options',
+        summary='新增任务所需要的选项：'
+                '目标网站--target_web'
+                '服务器--servers',
     )
     def get(self):
         rst = []
@@ -345,7 +320,7 @@ class JobCtrl(flask_restful.Resource):
         return rst
 
     @swagger.operation(
-        summary='add job instance',
+        summary='添加新的任务',
         notes="json keys: <br>" + "<br>".join(JOB_INSTANCE_FIELDS),
         parameters=[{
             "name": "job_name",
@@ -608,14 +583,7 @@ class JobDetailCtrl(flask_restful.Resource):
 
 class JobExecutionCtrl(flask_restful.Resource):
     @swagger.operation(
-        summary='list job execution ',
-        # parameters=[{
-        #     "name": "project_id",
-        #     "description": "project id",
-        #     "required": True,
-        #     "paramType": "path",
-        #     "dataType": 'int'
-        # }]
+        summary='任务执行情况 ',
         )
     def get(self):
         job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id)).all()
@@ -639,8 +607,6 @@ class JobExecutionCtrl(flask_restful.Resource):
                 }
             rsts.append(rst)
         return jsonify(rsts)
-
-        return JobExecution.list_jobs(project_id)
 
 
 class JobExecutionDetailCtrl(flask_restful.Resource):
@@ -673,7 +639,7 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 # api.add_resource(ProjectCtrl, "/api/projects")
 # api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 # api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
-api.add_resource(JobCtrl, "/api/project/add_jobs")                  # 新增任务
+api.add_resource(JobCtrl, "/api/project/add_jobs")               # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")                       # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")             # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos")              # 视频列表
