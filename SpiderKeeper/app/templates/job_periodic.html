@@ -67,12 +67,12 @@
                     title="{{ job_instance.spider_arguments }}">{{ job_instance.spider_arguments }}
                 </td>
                 <td>{{ job_instance.tags }}</td>
-                {% if job_instance.enabled == 0%}
+                {% if job_instance.enabled == -1%}
                 <td>
                     <a href="/project/{{ project.id }}/job/{{ job_instance.job_instance_id }}/switch"><span
                             class="label label-info">Enabled</span></a>
                 </td>
-                {% elif job_instance.enabled == -1 %}
+                {% elif job_instance.enabled == 0 %}
                 <td>
                     <a href="/project/{{ project.id }}/job/{{ job_instance.job_instance_id }}/switch"><span
                             class="label label-danger">Disabled</span></a>
