@@ -12,7 +12,7 @@ from flask_restful import Api
 from flask_restful_swagger import swagger
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import HTTPException
-
+from flask_cors import *
 
 import SpiderKeeper
 from SpiderKeeper import config
@@ -38,6 +38,7 @@ api = swagger.docs(Api(app), apiVersion=SpiderKeeper.__version__, api_spec_url="
 # by modules and controllers
 db = SQLAlchemy(app, session_options=dict(autocommit=False, autoflush=True))
 
+CORS(app, supports_credentials=True)  # 解决跨域问题
 
 @app.teardown_request
 def teardown_request(exception):
