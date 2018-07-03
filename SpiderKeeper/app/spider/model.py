@@ -137,7 +137,7 @@ class JobInstance(Base):
     cron_day_of_month = db.Column(db.String(20), default="*")
     cron_day_of_week = db.Column(db.String(20), default="*")
     cron_month = db.Column(db.String(20), default="*")
-    enabled = db.Column(db.INTEGER, default=0)  # 0/-1   # 任务状态
+    enabled = db.Column(db.INTEGER, default=0)  # 0/-1/1  # 任务状态
 
     def to_dict(self):
         return {'id': self.id,

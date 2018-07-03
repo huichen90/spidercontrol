@@ -634,7 +634,8 @@ class JobExecutionCtrl(flask_restful.Resource):
                 'date': job_excution.start_time.strftime('%Y-%m-%d'),
                 'job_status': job_status,
                 'enabled': job_instance.enabled,
-                # 'video_num':
+                'video_num': Videoitems.query.filter_by(spider_time=job_instance.start_time.strftime('%Y-%m-%d'),
+                                                        task_id=job_excution.job_instance_id).count()
                 }
             rsts.append(rst)
         return jsonify(rsts)
