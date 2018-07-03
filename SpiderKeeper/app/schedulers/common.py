@@ -1,3 +1,4 @@
+import datetime
 import threading
 import time
 
@@ -13,6 +14,17 @@ def sync_job_execution_status_job():
     for project in Project.query.all():
         agent.sync_job_status(project)
     app.logger.debug('[sync_job_execution_status]')
+
+def sync_job_instance_status():
+    """
+    sync job instance status
+    :return:
+    """
+    for job_instance in JobInstance.query.all():
+        if job_instance.end_date < datetime.datetime.now() and job_instance.run_time == '设定区间':
+            job_instance.enabled = 1
+            db.session.commit()
+    app.logger.debug('[sync_job_instance_status]')
 
 
 def sync_spiders():
