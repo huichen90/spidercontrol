@@ -3,6 +3,7 @@ import os
 import tempfile
 
 import flask_restful
+import math
 import requests
 from flask import Blueprint, request, jsonify
 from flask import abort
@@ -153,9 +154,28 @@ JOB_INSTANCE_FIELDS.remove('date_modified')
 class VideosCtrl(flask_restful.Resource):
     @swagger.operation(
         summary='采集结果明细',
+        parameters=[{
+            "name": "page",
+            "description": "page 页数",
+            "required": True,
+            "paramType": "path",
+            "dataType": 'int'
+        }]
     )
-    def get(self):
-        videos = Videoitems.query.order_by(db.desc(Videoitems.id)).all()
+    def get(self, page):
+        videos = Videoitems.query.order_by(db.desc(Videoitems.id))
+        web_list = []
+        job_name_list = []
+        for job_instance in JobInstance.query.all():
+            job_name_list.append(job_instance.job_name)
+        for target_web in WebMonitor.query.all():
+            web_list.append(target_web.web_name)
+        video_num = videos.count()
+        total_page = int(math.ceil(video_num / 10))
+        page = int(page)
+        pagination = videos.paginate(page, per_page=10, error_out=False)
+        videos = pagination.items
+        response = {}
         rsts = []
         for video in videos:
             rst = {
@@ -168,7 +188,12 @@ class VideosCtrl(flask_restful.Resource):
 
             }
             rsts.append(rst)
-        return jsonify(rsts)
+        response['video_num'] = video_num
+        response['total_page'] = total_page
+        response['rsts'] = rsts
+        response['web_list'] = web_list
+        response['job_name_list'] = job_name_list
+        return jsonify(response)
 
 
 class VideoDetail(flask_restful.Resource):
@@ -461,8 +486,8 @@ class JobDetail(flask_restful.Resource):
                 'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
                 'enabled': job_instance.enabled,
                 'server': daemon,
-                'create_time': job_instance.date_created.strftime('%Y-%m-%d'),
-                'update_time': job_instance.date_modified.strftime('%Y-%m-%d'),
+                'create_time': job_instance.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+                'update_time': job_instance.date_modified.strftime('%Y-%m-%d %H:%M:%S'),
             }
             return jsonify({'rst': rst, 'code': 200})
 
@@ -630,9 +655,27 @@ class JobDetailCtrl(flask_restful.Resource):
 class JobExecutionCtrl(flask_restful.Resource):
     @swagger.operation(
         summary='任务执行情况 ',
+        parameters=[{
+            "name": "page",
+            "description": "page 页数",
+            "required": True,
+            "paramType": "path",
+            "dataType": 'int'
+        }]
     )
-    def get(self):
-        job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id)).all()
+    def get(self, page):
+        job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id))
+        job_name_list = []
+        for job_excution1 in job_excutions.all():
+            job_id = job_excution1.job_instance_id
+            job_name_list.append({'job_id': job_id,
+                                  'job_name': JobInstance.query.filter_by(id=job_id).first().job_name})
+        job_excution_num = job_excutions.count()
+        total_page = int(math.ceil(job_excution_num / 10))
+        page = int(page)
+        pagination = job_excutions.paginate(page, per_page=10, error_out=False)
+        job_excutions = pagination.items
+        response = {}
         rsts = []
         for job_excution in job_excutions:
             job_instance = JobInstance.query.filter_by(id=job_excution.job_instance_id).first()
@@ -652,7 +695,11 @@ class JobExecutionCtrl(flask_restful.Resource):
                                                         task_id=job_excution.job_instance_id).count()
             }
             rsts.append(rst)
-        return jsonify(rsts)
+        response['job_excution_num'] = job_excution_num
+        response['total_page'] = total_page
+        response['rsts'] = rsts
+        response['job_name_list'] = job_name_list
+        return jsonify(response)
 
 
 class JobExecutionDetailCtrl(flask_restful.Resource):
@@ -685,9 +732,25 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 class WebMonitorCtrl(flask_restful.Resource):
     @swagger.operation(
         summary='网站监测情况 ',
+        parameters=[{
+            "name": "page",
+            "description": "page 页数",
+            "required": True,
+            "paramType": "path",
+            "dataType": 'int'
+        }]
     )
-    def get(self):
-        target_web_monitors = WebMonitor.query.all()
+    def get(self, page):
+        target_web_monitors = WebMonitor.query
+        target_web_list = []
+        for target_web in target_web_monitors.all():
+            target_web_list.append({'web_id': target_web.id, 'web_name': target_web.web_name})
+        target_web_num = target_web_monitors.count()
+        total_page = int(math.ceil(target_web_num / 10))
+        page = int(page)
+        pagination = target_web_monitors.paginate(page, per_page=10, error_out=False)
+        target_web_monitors = pagination.items
+        response = {}
         rsts = []
         for target_web_monitor in target_web_monitors:
             rst = {
@@ -695,13 +758,18 @@ class WebMonitorCtrl(flask_restful.Resource):
                 'web_name': target_web_monitor.web_name,
                 'web_url': target_web_monitor.web_url,
                 'web_status': target_web_monitor.status,
-                'monitor_time': str(round((dts2ts(target_web_monitor.end_date) - dts2ts(target_web_monitor.start_date))
-                                          / (3600 * 24), 2)) + '天',
+                'monitor_time': str(
+                    math.ceil((dts2ts(target_web_monitor.end_date) - dts2ts(target_web_monitor.start_date))
+                              / (3600 * 24))) + '天',
                 'disconnected_num': target_web_monitor.disconnect_num,
-                'disconnected_time': target_web_monitor.disconnect_time.strftime('%Y-%m-%d'),
+                'disconnected_time': target_web_monitor.disconnect_time.strftime('%Y-%m-%d %H:%M:%S'),
             }
             rsts.append(rst)
-        return jsonify(rsts)
+        response['target_web_num'] = target_web_num
+        response['total_page'] = total_page
+        response['rsts'] = rsts
+        response['target_web_list'] = target_web_list
+        return jsonify(response)
 
 
 class WebMonitorDetailCtrl(flask_restful.Resource):
@@ -713,21 +781,36 @@ class WebMonitorDetailCtrl(flask_restful.Resource):
             "required": True,
             "paramType": "path",
             "dataType": 'int'
-        }]
+        },
+            {
+                "name": "page",
+                "description": "page 页数",
+                "required": True,
+                "paramType": "path",
+                "dataType": 'int'
+            }]
     )
-    def get(self, web_id):
-        target_web_monitor_logs = WebMonitorLog.query.filter_by(web_id=web_id).all()
+    def get(self, web_id, page=1):
+        page = int(page)
+        pagination = WebMonitorLog.query.filter_by(web_id=web_id) \
+            .order_by(db.desc(WebMonitorLog.id)).paginate(page, per_page=10, error_out=False)
+        target_web_monitor_logs = pagination.items
+        target_web_monitor_logs_num = WebMonitorLog.query.filter_by(web_id=web_id).count()
         target_web = WebMonitor.query.filter_by(id=web_id).first()
 
-        rsts = []
+        rsts = {}
+        log = []
         for target_web_monitor_log in target_web_monitor_logs:
             rst = {
-                'monitor_date': target_web_monitor_log.monitor_date.strftime('%Y-%m-%d'),
+                'monitor_date': target_web_monitor_log.monitor_date.strftime('%Y-%m-%d %H:%M:%S'),
                 'web_name': target_web.web_name,
                 'web_url': target_web.web_url,
                 'web_status': target_web_monitor_log.status,
             }
-            rsts.append(rst)
+            log.append(rst)
+        rsts['target_web_monitor_log'] = log
+        rsts['total_page'] = int(math.ceil(target_web_monitor_logs_num / 10))
+        rsts['total_log_num'] = target_web_monitor_logs_num
         return jsonify(rsts)
 
 
@@ -737,11 +820,11 @@ class WebMonitorDetailCtrl(flask_restful.Resource):
 api.add_resource(JobCtrl, "/api/project/add_jobs")  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")  # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
-api.add_resource(VideosCtrl, "/api/joblist/videos")  # 视频列表
+api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/videos/<video_id>")  # 视频详情
-api.add_resource(JobExecutionCtrl, "/api/job_executions")  # 任务执行列表
-api.add_resource(WebMonitorCtrl, "/api/web_monitor")  # 网站监控列表
-api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>")  # 网站监控日志
+api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
+api.add_resource(WebMonitorCtrl, "/api/web_monitor/<page>")  # 网站监控列表
+api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>/<page>")  # 网站监控日志
 # api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
 # api.add_resource(JobExecutionDetailCtrl, "/api/projects/<project_id>/jobexecs/<job_exec_id>")
