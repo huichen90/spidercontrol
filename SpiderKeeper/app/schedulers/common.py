@@ -118,5 +118,6 @@ def web_monitor():
             db.session.add(target_web_monitor_log)
             db.session.commit()
         else:
+            target_web.status = '正常'
             db.session.add(target_web_monitor_log)
             db.session.commit()
