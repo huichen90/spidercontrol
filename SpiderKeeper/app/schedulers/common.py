@@ -2,8 +2,10 @@ import datetime
 import threading
 import time
 
+from SpiderKeeper.app.util.http import request_get
+
 from SpiderKeeper.app import scheduler, app, agent, db
-from SpiderKeeper.app.spider.model import Project, JobInstance, SpiderInstance
+from SpiderKeeper.app.spider.model import Project, JobInstance, SpiderInstance, WebMonitor, WebMonitorLog
 
 
 def sync_job_execution_status_job():
@@ -41,7 +43,7 @@ def sync_spiders():
 def run_spider_job(job_instance_id):
     '''
     run spider by scheduler
-    :param job_instance:
+    :param job_instance_id:
     :return:
     '''
     try:
@@ -92,3 +94,29 @@ def reload_runnable_spider_job_execution():
                                  running_job_ids.difference(available_job_ids)):
         scheduler.remove_job(invalid_job_id)
         app.logger.info('[drop_spider_job][job_id:%s]' % invalid_job_id)
+
+def web_monitor():
+    """
+    Website monitoring
+    :param :
+    :return:
+    """
+    target_webs = WebMonitor.query.all()
+    for target_web in target_webs:
+        web_url = target_web.web_url
+        web_id = target_web.id
+        target_web_monitor_log = WebMonitorLog()
+        target_web_monitor_log.web_id = web_id
+        target_web_monitor_log.monitor_date = datetime.datetime.now()
+        target_web.end_date = target_web_monitor_log.monitor_date         # 添加最后一次监测时间
+        rst = request_get(url=web_url, retry_times=2)
+        if rst is None:
+            target_web_monitor_log.status = '断开'
+            target_web.status = '断开'
+            target_web.disconnect_time = target_web_monitor_log.monitor_date   # 添加上一次断开的时间
+            target_web.disconnect_num = target_web.disconnect_num + 1          # 断开次数加一
+            db.session.add(target_web_monitor_log)
+            db.session.commit()
+        else:
+            db.session.add(target_web_monitor_log)
+            db.session.commit()

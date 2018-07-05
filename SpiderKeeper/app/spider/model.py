@@ -263,11 +263,11 @@ class JobExecution(Base):
 class Videoitems(db.Model):
     __tablename__ = 'videoitems'
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(500),nullable=False)
+    title = db.Column(db.String(500), nullable=False)
     url = db.Column(db.String(100), nullable=False, index=True)
     keywords = db.Column(db.String(100), nullable=False)
-    tags = db.Column(db.String(1000),default=[])
-    video_category = db.Column(db.String(50),default="其它")
+    tags = db.Column(db.String(1000), default=[])
+    video_category = db.Column(db.String(50), default="其它")
     upload_time = db.Column(db.String(50))
     spider_time = db.Column(db.String(50))
     info = db.Column(db.Text)
@@ -280,4 +280,24 @@ class Videoitems(db.Model):
 
 class RunningJob(Base):
     __tablename__ = 'running_job'
-    spider_random_id = db.Column(db.String(50),nullable=False,index=True)
+    spider_random_id = db.Column(db.String(50), nullable=False,index=True)
+
+
+class WebMonitor(db.Model):
+    __tablename__ = 'target_web_monitor'
+    id = db.Column(db.Integer, primary_key=True)
+    web_name = db.Column(db.String(20))
+    web_url = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='正常')                         # 当前的状态
+    start_date = db.Column(db.DATETIME, default=db.func.current_timestamp())
+    end_date = db.Column(db.DATETIME, default=db.func.current_timestap())    # 最后一次测试的时间
+    disconnect_num = db.Column(db.Integer, default=0)                        # 断开的次数
+    disconnect_time = db.Column(db.DATETIME)                                 # 上一次断开的时间
+
+
+class WebMonitorLog(db.Model):
+    __tablename__ = 'target_web_monitor_log'
+    id = db.Column(db.Integer, primary_key=True)
+    web_id = db.Column(db.String(20))
+    status = db.Column(db.String(20), default='正常')                            # 监测时的状态
+    monitor_date = db.Column(db.DATETIME, default=db.func.current_timestamp())  # 监测时的时间
