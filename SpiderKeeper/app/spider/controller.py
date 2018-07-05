@@ -461,8 +461,8 @@ class JobDetail(flask_restful.Resource):
                 'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
                 'enabled': job_instance.enabled,
                 'server': daemon,
-                'create_time': job_instance.date_created,
-                'update_time': job_instance.date_modified,
+                'create_time': job_instance.date_created.strftime('%Y-%m-%d'),
+                'update_time': job_instance.date_modified.strftime('%Y-%m-%d'),
             }
             return jsonify({'rst': rst, 'code': 200})
 
