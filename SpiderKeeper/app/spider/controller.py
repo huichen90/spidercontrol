@@ -460,7 +460,9 @@ class JobDetail(flask_restful.Resource):
                 'video_upload_time': job_instance.upload_time_type,
                 'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
                 'enabled': job_instance.enabled,
-                'server': daemon
+                'server': daemon,
+                'create_time': job_instance.date_created,
+                'update_time': job_instance.date_modified,
             }
             return jsonify({'rst': rst, 'code': 200})
 
@@ -616,8 +618,10 @@ class JobDetailCtrl(flask_restful.Resource):
                 job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
                 job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                 job_instance.cron_month = post_data.get('cron_month') or '*'
+                job_instance.date_modified = datetime.datetime.now()
                 db.session.commit()
             else:
+                job_instance.date_modified = datetime.datetime.now()
                 db.session.commit()
                 agent.start_spider(job_instance)
             return True
