@@ -229,6 +229,9 @@ class JobSCtrl(flask_restful.Resource):
     )
     def get(self):
         job_instances = JobInstance.query.order_by(db.desc(JobInstance.id)).all()
+        job_instance_num = len(job_instances)
+        job_instance_running = 0
+
         rsts = []
         for job_instance in job_instances:
             if job_instance.run_time == '长期':
@@ -239,6 +242,7 @@ class JobSCtrl(flask_restful.Resource):
                 run_time = str(start_date[0]) + '至' + str(end_date[0])
             if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
                 job_status = '运行中'
+                job_instance_running += 1
             elif job_instance.enabled == -1:
                 job_status = '已暂停'
             else:
@@ -254,7 +258,8 @@ class JobSCtrl(flask_restful.Resource):
                 'enabled': job_instance.enabled,
             }
             rsts.append(rst)
-        return jsonify({'rst': rsts, 'code': 200})
+        return jsonify({'rst': rsts, 'code': 200, 'job_instance_num': job_instance_num,
+                        'job_instance_running': job_instance_running})
 
     @swagger.operation(
         summary='更改运行状态',
@@ -272,6 +277,7 @@ class JobSCtrl(flask_restful.Resource):
         job_instance = JobInstance.query.filter_by(id=put_data['job_id']).first()
         job_instance.enabled = -1 if job_instance.enabled == 0 else 0
         db.session.commit()
+        return jsonify({'rst': '更改状态成功', 'code': 200})
 
 
 class JobCtrl(flask_restful.Resource):
@@ -282,24 +288,24 @@ class JobCtrl(flask_restful.Resource):
     )
     def get(self):
         rst = {}
-        # target_webs1 = [project.to_dict() for project in Project.query.all()]
+        target_webs1 = [project.to_dict() for project in Project.query.all()]
         # webs = []
         # target_webs = {}
         # for target_web in target_webs1:
         #     webs.append(target_web)
         # target_webs['target_webs'] = webs
         # rst.append(target_webs)
-        # servers = {'servers': SERVERS}
+        servers = {'servers': SERVERS}
         # rst.append(servers)
         # print(rst)
         return jsonify({
-            'rst': {"采集形式": {
-                                "关键词采集": {"目标网站": ['优酷', 'youtube']},
-                                "板块采集": {"目标网站": {'youtube':
-                                                                  {"板块名": ["板块一", "板块二", "板块三"]}
-                                                        },
-                                            },
-                                }
+            'rst': {"spider_type": [
+                {"关键词采集": {"目标网站": target_webs1}},
+                {"板块采集": {"目标网站": {'name': 'youtube',
+                                        '板块名': ["板块一", "板块二", "板块三"]
+                                        },
+                          }},
+                                ]
                     },
             'code': 200
                     })
@@ -845,11 +851,11 @@ api.add_resource(JobCtrl, "/api/project/add_jobs")  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")  # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
-api.add_resource(VideoDetail, "/api/joblist/videos/<video_id>")  # 视频详情
+api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
 api.add_resource(WebMonitorCtrl, "/api/web_monitor/<page>")  # 网站监控列表
 api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>/<page>")  # 网站监控日志
-# api.add_resource(JobDetailCtrl, "/api/projects/<project_id>/jobs/<job_id>")
+api.add_resource(JobDetailCtrl, "/api/project/update_jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
 # api.add_resource(JobExecutionDetailCtrl, "/api/projects/<project_id>/jobexecs/<job_exec_id>")
 

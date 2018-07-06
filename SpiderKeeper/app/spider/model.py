@@ -264,6 +264,7 @@ class Videoitems(db.Model):
     __tablename__ = 'videoitems'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(500), nullable=False)
+    title_cn = db.Column(db.String(500), default="")       # 添加中文标题
     url = db.Column(db.String(100), nullable=False, index=True)
     keywords = db.Column(db.String(100), nullable=False)
     tags = db.Column(db.String(1000), default=[])
@@ -276,6 +277,7 @@ class Videoitems(db.Model):
     isdownload = db.Column(db.Integer, default=0)
     play_count = db.Column(db.String(20), default="0")
     task_id = db.Column(db.String(20))
+    lg = db.Column(db.String(40))
 
 
 class RunningJob(Base):
