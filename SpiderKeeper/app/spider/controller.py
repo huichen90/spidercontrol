@@ -170,11 +170,11 @@ class VideosCtrl(flask_restful.Resource):
             job_name_list.append(job_instance.job_name)
         for target_web in WebMonitor.query.all():
             web_list.append(target_web.web_name)
-        video_num = videos.count()
-        total_page = int(math.ceil(video_num / 10))
         page = int(page)
         pagination = videos.paginate(page, per_page=10, error_out=False)
         videos = pagination.items
+        video_num = pagination.total
+        total_page = pagination.pages
         response = {}
         rsts = []
         for video in videos:
@@ -193,7 +193,7 @@ class VideosCtrl(flask_restful.Resource):
         response['rsts'] = rsts
         response['web_list'] = web_list
         response['job_name_list'] = job_name_list
-        return jsonify(response)
+        return jsonify({'rst': response, 'code': 200})
 
 
 class VideoDetail(flask_restful.Resource):
@@ -220,7 +220,7 @@ class VideoDetail(flask_restful.Resource):
             'info': video.info,
         }
 
-        return jsonify(rst)
+        return jsonify({'rst': rst, 'code': 200})
 
 
 class JobSCtrl(flask_restful.Resource):
@@ -254,11 +254,11 @@ class JobSCtrl(flask_restful.Resource):
                 'enabled': job_instance.enabled,
             }
             rsts.append(rst)
-        return jsonify(rsts)
+        return jsonify({'rst': rsts, 'code': 200})
 
     @swagger.operation(
         summary='更改运行状态',
-        note='暂停与开启之间的切换',
+        notes='暂停与开启之间的切换',
         parameters=[{
             "name": "job_id",
             "description": "job_id 任务的id",
@@ -281,18 +281,28 @@ class JobCtrl(flask_restful.Resource):
               "服务器--servers",
     )
     def get(self):
-        rst = []
-        target_webs1 = [project.to_dict() for project in Project.query.all()]
-        webs = []
-        target_webs = {}
-        for target_web in target_webs1:
-            webs.append(target_web)
-        target_webs['target_webs'] = webs
-        rst.append(target_webs)
-        servers = {'servers': SERVERS}
-        rst.append(servers)
-        print(rst)
-        return rst
+        rst = {}
+        # target_webs1 = [project.to_dict() for project in Project.query.all()]
+        # webs = []
+        # target_webs = {}
+        # for target_web in target_webs1:
+        #     webs.append(target_web)
+        # target_webs['target_webs'] = webs
+        # rst.append(target_webs)
+        # servers = {'servers': SERVERS}
+        # rst.append(servers)
+        # print(rst)
+        return jsonify({
+            'rst': {"采集形式": {
+                                "关键词采集": {"目标网站": ['优酷', 'youtube']},
+                                "板块采集": {"目标网站": {'youtube':
+                                                                  {"板块名": ["板块一", "板块二", "板块三"]}
+                                                        },
+                                            },
+                                }
+                    },
+            'code': 200
+                    })
 
     @swagger.operation(
         summary='添加新的任务',
@@ -400,45 +410,51 @@ class JobCtrl(flask_restful.Resource):
         post_data = request.form
         if post_data:
             job_instance = JobInstance()
-            job_instance.job_name = post_data.get('job_name')
-            job_instance.spider_name = post_data['spider_name']
-            job_instance.project_id = post_data['project_id']
-            job_instance.keywords = post_data.get('keywords')
-            # job_instance.spider_type = post_data.get('spider_type')
-            job_instance.run_time = post_data.get('run_time')  # 运行时间
-            if job_instance.run_time != '长期':
-                job_instance.start_date = post_data.get('start_date')
-                job_instance.end_date = post_data.get('end_date')
-            job_instance.spider_freq = post_data.get('spider_freq')
-            job_instance.run_type = post_data.get('run_type')
-            job_instance.upload_time_type = post_data.get('upload_time_type')
-            job_instance.upload_time_start_date = post_data.get('upload_time_start_date')
-            job_instance.upload_time_end_date = post_data.get('upload_time_end_date')
-            job_instance.video_time_short = post_data.get('video_time_short')
-            job_instance.video_time_long = post_data.get('video_time_long')
-            if post_data.get('daemon') != 'auto':
-                spider_args = []
-                if post_data.get('spider_arguments'):
-                    spider_args = post_data.get('spider_arguments').split(",")
-                spider_args.append("daemon={}".format(post_data.get('daemon')))
-                job_instance.spider_arguments = ','.join(spider_args)
-            # job_instance.spider_arguments = post_data.get('spider_arguments')
-            job_instance.priority = post_data.get('priority', 0)
-            if job_instance.run_type == "持续运行":
-                # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
-                job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
-                job_instance.cron_hour = post_data.get('cron_hour') or '*'
-                # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
-                job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
-                job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
-                job_instance.cron_month = post_data.get('cron_month') or '*'
-                db.session.add(job_instance)
-                db.session.commit()
-            else:
-                db.session.add(job_instance)
-                db.session.commit()
-                agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
-            return True
+            try:
+                job_instance.job_name = post_data.get('job_name')
+                job_instance.spider_name = post_data['spider_name']
+                job_instance.project_id = post_data['project_id']
+                job_instance.keywords = post_data.get('keywords')
+                # job_instance.spider_type = post_data.get('spider_type')
+                job_instance.run_time = post_data.get('run_time')  # 运行时间
+                if job_instance.run_time != '长期':
+                    job_instance.start_date = post_data.get('start_date')
+                    job_instance.end_date = post_data.get('end_date')
+                job_instance.spider_freq = post_data.get('spider_freq')
+                job_instance.run_type = post_data.get('run_type')
+                job_instance.upload_time_type = post_data.get('upload_time_type')
+                job_instance.upload_time_start_date = post_data.get('upload_time_start_date')
+                job_instance.upload_time_end_date = post_data.get('upload_time_end_date')
+                job_instance.video_time_short = post_data.get('video_time_short')
+                job_instance.video_time_long = post_data.get('video_time_long')
+                if post_data.get('daemon') != 'auto':
+                    spider_args = []
+                    if post_data.get('spider_arguments'):
+                        spider_args = post_data.get('spider_arguments').split(",")
+                    spider_args.append("daemon={}".format(post_data.get('daemon')))
+                    job_instance.spider_arguments = ','.join(spider_args)
+                # job_instance.spider_arguments = post_data.get('spider_arguments')
+                job_instance.priority = post_data.get('priority', 0)
+                if job_instance.run_type == "持续运行":
+                    # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
+                    job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
+                    job_instance.cron_hour = post_data.get('cron_hour') or '*'
+                    # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
+                    job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                    job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
+                    job_instance.cron_month = post_data.get('cron_month') or '*'
+                    db.session.add(job_instance)
+                    db.session.commit()
+                    return jsonify({'rst': '添加成功', 'code': 200})
+                else:
+                    db.session.add(job_instance)
+                    db.session.commit()
+                    agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
+                    return jsonify({'rst': '添加成功', 'code': 200})
+            except Exception as e:
+                return jsonify({'rst': e, 'code': 404})
+        else:
+            return jsonify({'rst': '添加失败，没有数据', 'code': 404})
 
 
 class JobDetail(flask_restful.Resource):
@@ -609,47 +625,53 @@ class JobDetailCtrl(flask_restful.Resource):
             job_instance = JobInstance.query.filter_by(id=job_id).first()
             if not job_instance:
                 abort(404)
-            job_instance.job_name = post_data.get('job_name') or job_instance.job_name
-            job_instance.spider_name = post_data['spider_name'] or job_instance.spider_name
-            job_instance.project_id = post_data['project_id'] or job_instance.project_id
-            job_instance.keywords = post_data.get('keywords') or job_instance.keywords
-            # job_instance.spider_type = post_data.get('spider_type')
-            job_instance.run_time = post_data.get('run_time') or job_instance.run_time  # 运行时间
-            if job_instance.run_time != '长期':
-                job_instance.start_date = post_data.get('start_date') or job_instance.start_date
-                job_instance.end_date = post_data.get('end_date') or job_instance.end_date
-            job_instance.spider_freq = post_data.get('spider_freq') or job_instance.spider_freq
-            job_instance.run_type = post_data.get('run_type') or job_instance.run_type
-            job_instance.upload_time_type = post_data.get('upload_time_type') or job_instance.upload_time_type
-            job_instance.upload_time_start_date = post_data.get('upload_time_start_date') \
-                                                  or job_instance.upload_time_start_date
-            job_instance.upload_time_end_date = post_data.get('upload_time_end_date') \
-                                                or job_instance.upload_time_end_date
-            job_instance.video_time_short = post_data.get('video_time_short') or job_instance.video_time_short
-            job_instance.video_time_long = post_data.get('video_time_long') or job_instance.video_time_long
-            if post_data.get('daemon') != 'auto':
-                spider_args = []
-                if post_data.get('spider_arguments'):
-                    spider_args = post_data.get('spider_arguments').split(",")
-                spider_args.append("daemon={}".format(post_data.get('daemon')))
-                job_instance.spider_arguments = ','.join(spider_args)
-            # job_instance.spider_arguments = post_data.get('spider_arguments')
-            job_instance.priority = post_data.get('priority', 0)
-            if job_instance.run_type == "持续运行":
-                # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
-                job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
-                job_instance.cron_hour = post_data.get('cron_hour') or '*'
-                # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
-                job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
-                job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
-                job_instance.cron_month = post_data.get('cron_month') or '*'
-                job_instance.date_modified = datetime.datetime.now()
-                db.session.commit()
-            else:
-                job_instance.date_modified = datetime.datetime.now()
-                db.session.commit()
-                agent.start_spider(job_instance)
-            return True
+            try:
+                job_instance.job_name = post_data.get('job_name') or job_instance.job_name
+                job_instance.spider_name = post_data['spider_name'] or job_instance.spider_name
+                job_instance.project_id = post_data['project_id'] or job_instance.project_id
+                job_instance.keywords = post_data.get('keywords') or job_instance.keywords
+                # job_instance.spider_type = post_data.get('spider_type')
+                job_instance.run_time = post_data.get('run_time') or job_instance.run_time  # 运行时间
+                if job_instance.run_time != '长期':
+                    job_instance.start_date = post_data.get('start_date') or job_instance.start_date
+                    job_instance.end_date = post_data.get('end_date') or job_instance.end_date
+                job_instance.spider_freq = post_data.get('spider_freq') or job_instance.spider_freq
+                job_instance.run_type = post_data.get('run_type') or job_instance.run_type
+                job_instance.upload_time_type = post_data.get('upload_time_type') or job_instance.upload_time_type
+                job_instance.upload_time_start_date = post_data.get('upload_time_start_date') \
+                                                      or job_instance.upload_time_start_date
+                job_instance.upload_time_end_date = post_data.get('upload_time_end_date') \
+                                                    or job_instance.upload_time_end_date
+                job_instance.video_time_short = post_data.get('video_time_short') or job_instance.video_time_short
+                job_instance.video_time_long = post_data.get('video_time_long') or job_instance.video_time_long
+                if post_data.get('daemon') != 'auto':
+                    spider_args = []
+                    if post_data.get('spider_arguments'):
+                        spider_args = post_data.get('spider_arguments').split(",")
+                    spider_args.append("daemon={}".format(post_data.get('daemon')))
+                    job_instance.spider_arguments = ','.join(spider_args)
+                # job_instance.spider_arguments = post_data.get('spider_arguments')
+                job_instance.priority = post_data.get('priority', 0)
+                if job_instance.run_type == "持续运行":
+                    # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
+                    job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
+                    job_instance.cron_hour = post_data.get('cron_hour') or '*'
+                    # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
+                    job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                    job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
+                    job_instance.cron_month = post_data.get('cron_month') or '*'
+                    job_instance.date_modified = datetime.datetime.now()
+                    db.session.commit()
+                    return jsonify({'rst': '修改成功', 'code': 200})
+                else:
+                    job_instance.date_modified = datetime.datetime.now()
+                    db.session.commit()
+                    agent.start_spider(job_instance)
+                    return jsonify({'rst': '修改成功', 'code': 200})
+            except Exception as e:
+                return jsonify({'rst': '修改失败 %s' % e, 'code': 404})
+        else:
+            return jsonify({'rst': '修改失败，没有数据', 'code': 404})
 
 
 class JobExecutionCtrl(flask_restful.Resource):
@@ -670,11 +692,11 @@ class JobExecutionCtrl(flask_restful.Resource):
             job_id = job_excution1.job_instance_id
             job_name_list.append({'job_id': job_id,
                                   'job_name': JobInstance.query.filter_by(id=job_id).first().job_name})
-        job_excution_num = job_excutions.count()
-        total_page = int(math.ceil(job_excution_num / 10))
         page = int(page)
         pagination = job_excutions.paginate(page, per_page=10, error_out=False)
         job_excutions = pagination.items
+        job_excution_num = pagination.total
+        total_page = pagination.pages
         response = {}
         rsts = []
         for job_excution in job_excutions:
@@ -745,11 +767,11 @@ class WebMonitorCtrl(flask_restful.Resource):
         target_web_list = []
         for target_web in target_web_monitors.all():
             target_web_list.append({'web_id': target_web.id, 'web_name': target_web.web_name})
-        target_web_num = target_web_monitors.count()
-        total_page = int(math.ceil(target_web_num / 10))
         page = int(page)
         pagination = target_web_monitors.paginate(page, per_page=10, error_out=False)
         target_web_monitors = pagination.items
+        total_page = pagination.pages
+        target_web_num = pagination.total
         response = {}
         rsts = []
         for target_web_monitor in target_web_monitors:
@@ -793,9 +815,11 @@ class WebMonitorDetailCtrl(flask_restful.Resource):
     def get(self, web_id, page=1):
         page = int(page)
         pagination = WebMonitorLog.query.filter_by(web_id=web_id) \
-            .order_by(db.desc(WebMonitorLog.id)).paginate(page, per_page=10, error_out=False)
+            .order_by(db.desc(WebMonitorLog.id)).paginate(page, per_page=10, error_out=False)  # 分页
         target_web_monitor_logs = pagination.items
-        target_web_monitor_logs_num = WebMonitorLog.query.filter_by(web_id=web_id).count()
+        target_web_monitor_logs_num = pagination.total
+        total_page = pagination.pages
+
         target_web = WebMonitor.query.filter_by(id=web_id).first()
 
         rsts = {}
@@ -809,7 +833,7 @@ class WebMonitorDetailCtrl(flask_restful.Resource):
             }
             log.append(rst)
         rsts['target_web_monitor_log'] = log
-        rsts['total_page'] = int(math.ceil(target_web_monitor_logs_num / 10))
+        rsts['total_page'] = total_page
         rsts['total_log_num'] = target_web_monitor_logs_num
         return jsonify(rsts)
 
