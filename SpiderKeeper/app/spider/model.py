@@ -3,8 +3,8 @@ import json
 
 from sqlalchemy import desc
 
-from SpiderKeeper import app
-from SpiderKeeper.app import db, Base
+
+from SpiderKeeper.app import db, Base, app
 from werkzeug.security import generate_password_hash,check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
 
@@ -330,10 +330,12 @@ class User(db.Model):
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    # 生成token
     def generate_auth_token(self, expiration=3600):
         s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'id': self.id})
 
+    # 验证用户token
     @staticmethod
     def verify_auth_token(token):
         s = Serializer(app.config['SECRET_KEY'])

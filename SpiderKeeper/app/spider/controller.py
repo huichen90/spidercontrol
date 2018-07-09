@@ -5,7 +5,7 @@ import tempfile
 import flask_restful
 import math
 import requests
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g, make_response
 from flask import abort
 from flask import flash
 from flask import redirect
@@ -39,7 +39,7 @@ class UserRegister(flask_restful.Resource):
             "paramType": "form",
             "dataType": 'string'
         },
-        {
+            {
             "name": "password",
             "description": "用户密码",
             "required": True,
@@ -59,7 +59,13 @@ class UserRegister(flask_restful.Resource):
             except Exception as e:
                 return jsonify({'rst': '注册失败，用户名已存在', 'code': 404})
 
+
 auth = HTTPBasicAuth()
+
+
+@auth.error_handler
+def unauthorized():
+    return make_response(jsonify({'error': 'Unauthorized access'}), 403)
 
 
 class UserLogin(flask_restful.Resource):
@@ -79,21 +85,42 @@ class UserLogin(flask_restful.Resource):
                 "paramType": "form",
                 "dataType": 'string'
             }])
+    @auth.verify_password
     def post(self):
         post_data = request.form
         if post_data:
-            user = User.query.filter_by(username=post_data.get('user_name')).first()
+            user = User.query.filter_by(user_name=post_data.get('user_name')).first()
             if not user:
-                return jsonify({'rst': '登录失败，用户名不存在', 'code': 404})
+                return False
             elif not user.confirmed:
-                return jsonify({'rst': '登录失败，该账户还未激活', 'code': 404})
+                return jsonify({'rst': '账户未激活', 'code': 400, })
             elif user.verify_password(post_data.get('password')):
-                login_user(u)
-                flash('登录成功')
-                login_user(u, remember=form.remember.data)
-                return redirect(request.args.get('next') or url_for('main.index'))
+                g.user = user
+                token = g.user.generate_auth_token()
+                return jsonify({'rst': '登陆成功', 'token': token.decode('ascii'), 'code': 200})
+
             else:
-                flash('无效的密码')
+                return False
+
+
+@app.route('/api/resource')
+@auth.login_required
+def get_resource():
+    return jsonify({ 'data': 'Hello, %s!' % g.user.user_name })
+
+
+@auth.verify_password
+def verify_password(username, password):
+        user = User.query.filter_by(user_name=username).first()
+        if not user:
+            return False
+        elif not user.confirmed:
+            return False
+        elif user.verify_password(password):
+            g.user = user
+            return True
+        else:
+            return False
 
 class ProjectCtrl(flask_restful.Resource):
     @swagger.operation(
@@ -836,6 +863,7 @@ class WebMonitorCtrl(flask_restful.Resource):
             "dataType": 'int'
         }]
     )
+    @auth.login_required
     def get(self, page):
         target_web_monitors = WebMonitor.query
         target_web_list = []
@@ -865,6 +893,7 @@ class WebMonitorCtrl(flask_restful.Resource):
         response['total_page'] = total_page
         response['rsts'] = rsts
         response['target_web_list'] = target_web_list
+        response['user'] = g.user.user_name
         return jsonify(response)
 
 
