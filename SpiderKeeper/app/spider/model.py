@@ -2,7 +2,11 @@ import datetime
 import json
 
 from sqlalchemy import desc
+
+from SpiderKeeper import app
 from SpiderKeeper.app import db, Base
+from werkzeug.security import generate_password_hash,check_password_hash
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
 
 
 class Project(Base):
@@ -303,3 +307,41 @@ class WebMonitorLog(db.Model):
     web_id = db.Column(db.String(20))
     status = db.Column(db.String(20), default='正常')                            # 监测时的状态
     monitor_date = db.Column(db.DATETIME, default=db.func.current_timestamp())  # 监测时的时间
+
+
+class User(db.Model):
+    __tablename__ = 'user'
+    id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(20), unique=True)
+    password_hash = db.Column(db.String(128))
+    confirmed = db.Column(db.Boolean, default=0)
+
+    # 保护密码字段
+    @property
+    def password(self):
+        raise AttributeError('密码是不可读属性')
+
+    # 设置密码，加密存储
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    # 密码校验
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def generate_auth_token(self, expiration=3600):
+        s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
+        return s.dumps({'id': self.id})
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except SignatureExpired:
+            return None  # valid token, but expired
+        except BadSignature:
+            return None  # invalid token
+        user = User.query.get(data['id'])
+        return user

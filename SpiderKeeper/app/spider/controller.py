@@ -13,10 +13,12 @@ from flask import render_template
 from flask import session
 from flask_restful_swagger import swagger
 from werkzeug.utils import secure_filename
+from flask.ext.httpauth import HTTPBasicAuth
+
 
 from SpiderKeeper.app import db, api, agent, app
 from SpiderKeeper.app.spider.model import JobInstance, Project, JobExecution, SpiderInstance, JobRunType, Videoitems, \
-    WebMonitor, WebMonitorLog
+    WebMonitor, WebMonitorLog, User
 from SpiderKeeper.app.util.dates import dts2ts
 from SpiderKeeper.config import SERVERS
 
@@ -26,6 +28,72 @@ api_spider_bp = Blueprint('spider', __name__)
 ========= api =========
 '''
 
+
+class UserRegister(flask_restful.Resource):
+    @swagger.operation(
+        summary='用户注册',
+        parameters=[{
+            "name": "user_name",
+            "description": "用户名",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },
+        {
+            "name": "password",
+            "description": "用户密码",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        }])
+    def post(self):
+        post_data = request.form
+        if post_data:
+            user = User()
+            try:
+                user.user_name = post_data['user_name']
+                user.password = post_data['password']
+                db.session.add(user)
+                db.session.commit()
+                return jsonify({'rst': '注册成功', 'code': 201})
+            except Exception as e:
+                return jsonify({'rst': '注册失败，用户名已存在', 'code': 404})
+
+auth = HTTPBasicAuth()
+
+
+class UserLogin(flask_restful.Resource):
+    @swagger.operation(
+        summary='用户登录',
+        parameters=[{
+            "name": "user_name",
+            "description": "用户名",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        },
+            {
+                "name": "password",
+                "description": "用户密码",
+                "required": True,
+                "paramType": "form",
+                "dataType": 'string'
+            }])
+    def post(self):
+        post_data = request.form
+        if post_data:
+            user = User.query.filter_by(username=post_data.get('user_name')).first()
+            if not user:
+                return jsonify({'rst': '登录失败，用户名不存在', 'code': 404})
+            elif not user.confirmed:
+                return jsonify({'rst': '登录失败，该账户还未激活', 'code': 404})
+            elif user.verify_password(post_data.get('password')):
+                login_user(u)
+                flash('登录成功')
+                login_user(u, remember=form.remember.data)
+                return redirect(request.args.get('next') or url_for('main.index'))
+            else:
+                flash('无效的密码')
 
 class ProjectCtrl(flask_restful.Resource):
     @swagger.operation(
@@ -847,6 +915,8 @@ class WebMonitorDetailCtrl(flask_restful.Resource):
 # api.add_resource(ProjectCtrl, "/api/projects")
 # api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 # api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
+api.add_resource(UserRegister, "/api/user/register")  # 用户注册
+api.add_resource(UserLogin, "/api/user/login")  # 用户登录
 api.add_resource(JobCtrl, "/api/project/add_jobs")  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")  # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
