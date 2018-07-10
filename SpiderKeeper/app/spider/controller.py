@@ -304,6 +304,84 @@ class VideosCtrl(flask_restful.Resource):
         response['user_name'] = g.user.user_name
         return jsonify({'rst': response, 'code': 200, })
 
+    @auth.login_required
+    @swagger.operation(
+        summary='采集结果搜索',
+        parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
+            "name": "spider_time_start",
+            "description": "爬取视频的最早时间",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        }, {
+            "name": "spider_time_end",
+            "description": "爬去视频的最晚时间",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        }, {
+            "name": "title",
+            "description": "视频名称，实为关键字查询",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        }, {
+            "name": "site_name",
+            "description": "视频来源",
+            "required": True,
+            "paramType": "form",
+            "dataType": 'string'
+        }, {
+            "name": "job_name",
+            "description": "任务名称",
+            "required": True,
+            "paramType": "path",
+            "dataType": 'string'
+        }]
+    )
+    def post(self, page):
+
+        web_list = []
+        job_name_list = []
+        for job_instance in JobInstance.query.all():
+            job_name_list.append(job_instance.job_name)
+        for target_web in WebMonitor.query.all():
+            web_list.append(target_web.web_name)
+        # 分页
+        page = int(page)
+        # 条件查询
+        videos = Videoitems.query.filter_by().order_by(db.desc(Videoitems.id))
+        pagination = videos.paginate(page, per_page=10, error_out=False)
+        videos = pagination.items
+        video_num = pagination.total
+        total_page = pagination.pages
+        response = {}
+        rsts = []
+        for video in videos:
+            rst = {
+                'video_id': video.id,
+                'task_id': video.task_id,
+                'title': video.title,
+                'spider_time': video.spider_time,
+                'site_name': video.site_name,
+                'job_name': JobInstance.query.filter_by(id=video.task_id).first().job_name,
+
+            }
+            rsts.append(rst)
+        response['video_num'] = video_num
+        response['total_page'] = total_page
+        response['rsts'] = rsts
+        response['web_list'] = web_list
+        response['job_name_list'] = job_name_list
+        response['user_name'] = g.user.user_name
+        return jsonify({'rst': response, 'code': 200, })
+
 
 class VideoDetail(flask_restful.Resource):
     @auth.login_required
@@ -1032,12 +1110,12 @@ api.add_resource(UserLogin, "/api/user/login")  # 用户登录
 api.add_resource(JobCtrl, "/api/project/add_jobs")  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")  # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
+api.add_resource(JobDetailCtrl, "/api/project/update_jobs/<job_id>")     # 任务更新
 api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
 api.add_resource(WebMonitorCtrl, "/api/web_monitor/<page>")  # 网站监控列表
 api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>/<page>")  # 网站监控日志
-api.add_resource(JobDetailCtrl, "/api/project/update_jobs/<job_id>")
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
 # api.add_resource(JobExecutionDetailCtrl, "/api/projects/<project_id>/jobexecs/<job_exec_id>")
 
