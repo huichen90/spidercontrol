@@ -142,6 +142,7 @@ class JobInstance(Base):
     cron_day_of_week = db.Column(db.String(20), default="*")
     cron_month = db.Column(db.String(20), default="*")
     enabled = db.Column(db.INTEGER, default=0)  # 0/-1/1  # 任务状态
+    user_id = db.Column(db.INTEGER)             # 创建者id
 
     def to_dict(self):
         return {'id': self.id,
@@ -171,7 +172,9 @@ class JobInstance(Base):
                 'cron_day_of_month': self.cron_day_of_month,
                 'cron_day_of_week': self.cron_day_of_week,
                 'cron_month': self.cron_month,
-                'enabled': self.enabled == 0, }
+                'enabled': self.enabled == 0,
+                'user_id': self.user_id
+               }
 
 
 
@@ -331,7 +334,7 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     # 生成token
-    def generate_auth_token(self, expiration=3600):
+    def generate_auth_token(self, expiration=1800):
         s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'id': self.id})
 

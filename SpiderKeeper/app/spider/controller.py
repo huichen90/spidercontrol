@@ -55,7 +55,7 @@ class UserRegister(flask_restful.Resource):
                 user.password = post_data['password']
                 db.session.add(user)
                 db.session.commit()
-                return jsonify({'rst': '注册成功', 'code': 201})
+                return jsonify({'rst': '注册成功', 'code': 201, 'user_name': user.user_name})
             except Exception as e:
                 return jsonify({'rst': '注册失败，用户名已存在', 'code': 404})
 
@@ -69,10 +69,11 @@ def unauthorized():
 
 
 class UserLogin(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
-        summary='用户登录',
+        summary='用户登录,获取token',
         parameters=[{
-            "name": "user_name",
+            "name": "username_or_token",
             "description": "用户名",
             "required": True,
             "paramType": "form",
@@ -81,46 +82,51 @@ class UserLogin(flask_restful.Resource):
             {
                 "name": "password",
                 "description": "用户密码",
-                "required": True,
+                "required": False,
                 "paramType": "form",
                 "dataType": 'string'
             }])
-    @auth.verify_password
     def post(self):
-        post_data = request.form
-        if post_data:
-            user = User.query.filter_by(user_name=post_data.get('user_name')).first()
-            if not user:
-                return False
-            elif not user.confirmed:
-                return jsonify({'rst': '账户未激活', 'code': 400, })
-            elif user.verify_password(post_data.get('password')):
-                g.user = user
-                token = g.user.generate_auth_token()
-                return jsonify({'rst': '登陆成功', 'token': token.decode('ascii'), 'code': 200})
+        token = g.user.generate_auth_token()
+        return jsonify({'token': token.decode('ascii'), 'user_name': g.user.user_name})
 
-            else:
-                return False
+
+@auth.verify_password
+def verify_password(username_or_token, password):
+    post_data = request.form
+    if request.path == "/api/user/login":
+        user = User.query.filter_by(user_name=post_data.get('username_or_token')).first()
+        if not user or not user.verify_password(post_data.get('password')):
+            return False
+    else:
+        user = User.verify_auth_token(request.headers.get('username_or_token'))
+        if not user:
+            return False
+    g.user = user
+    return True
+
+    # def post(self):
+    #     post_data = request.form
+    #     if post_data:
+    #         user = User.query.filter_by(user_name=post_data.get('user_name')).first()
+    #         if not user:
+    #             return False
+    #         elif not user.confirmed:
+    #             return jsonify({'rst': '账户未激活', 'code': 400, })
+    #         elif user.verify_password(post_data.get('password')):
+    #             g.user = user
+    #             token = g.user.generate_auth_token()
+    #             return jsonify({'rst': '登陆成功', 'token': token.decode('ascii'), 'code': 200})
+    #
+    #         else:
+    #             return False
 
 
 @app.route('/api/resource')
 @auth.login_required
 def get_resource():
-    return jsonify({ 'data': 'Hello, %s!' % g.user.user_name })
+    return jsonify({'data': 'Hello, %s!' % g.user.user_name })
 
-
-@auth.verify_password
-def verify_password(username, password):
-        user = User.query.filter_by(user_name=username).first()
-        if not user:
-            return False
-        elif not user.confirmed:
-            return False
-        elif user.verify_password(password):
-            g.user = user
-            return True
-        else:
-            return False
 
 class ProjectCtrl(flask_restful.Resource):
     @swagger.operation(
@@ -247,9 +253,16 @@ JOB_INSTANCE_FIELDS.remove('date_modified')
 
 
 class VideosCtrl(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='采集结果明细',
         parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
             "name": "page",
             "description": "page 页数",
             "required": True,
@@ -288,13 +301,21 @@ class VideosCtrl(flask_restful.Resource):
         response['rsts'] = rsts
         response['web_list'] = web_list
         response['job_name_list'] = job_name_list
-        return jsonify({'rst': response, 'code': 200})
+        response['user_name'] = g.user.user_name
+        return jsonify({'rst': response, 'code': 200, })
 
 
 class VideoDetail(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='视频详情',
         parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
             "name": "video_id",
             "description": "video的id",
             "required": True,
@@ -315,12 +336,21 @@ class VideoDetail(flask_restful.Resource):
             'info': video.info,
         }
 
-        return jsonify({'rst': rst, 'code': 200})
+        return jsonify({'rst': rst, 'code': 200, 'user_name': g.user.user_name})
 
 
 class JobSCtrl(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='任务列表',
+        parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        },
+        ]
     )
     def get(self):
         job_instances = JobInstance.query.order_by(db.desc(JobInstance.id)).all()
@@ -354,12 +384,19 @@ class JobSCtrl(flask_restful.Resource):
             }
             rsts.append(rst)
         return jsonify({'rst': rsts, 'code': 200, 'job_instance_num': job_instance_num,
-                        'job_instance_running': job_instance_running})
+                        'job_instance_running': job_instance_running, 'user_name': g.user.user_name})
 
+    @auth.login_required
     @swagger.operation(
         summary='更改运行状态',
         notes='暂停与开启之间的切换',
         parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
             "name": "job_id",
             "description": "job_id 任务的id",
             "required": True,
@@ -372,7 +409,7 @@ class JobSCtrl(flask_restful.Resource):
         job_instance = JobInstance.query.filter_by(id=put_data['job_id']).first()
         job_instance.enabled = -1 if job_instance.enabled == 0 else 0
         db.session.commit()
-        return jsonify({'rst': '更改状态成功', 'code': 200})
+        return jsonify({'rst': '更改状态成功', 'code': 200, 'user_name': g.user.user_name})
 
 
 class JobCtrl(flask_restful.Resource):
@@ -405,10 +442,17 @@ class JobCtrl(flask_restful.Resource):
             'code': 200
                     })
 
+    @auth.login_required
     @swagger.operation(
         summary='添加新的任务',
         notes="json keys: <br>" + "<br>".join(JOB_INSTANCE_FIELDS),
         parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
             "name": "job_name",
             "description": "任务名称(20个字以内)",
             "required": True,
@@ -512,6 +556,7 @@ class JobCtrl(flask_restful.Resource):
         if post_data:
             job_instance = JobInstance()
             try:
+                job_instance.user_id = g.user.id
                 job_instance.job_name = post_data.get('job_name')
                 job_instance.spider_name = post_data['spider_name']
                 job_instance.project_id = post_data['project_id']
@@ -546,19 +591,20 @@ class JobCtrl(flask_restful.Resource):
                     job_instance.cron_month = post_data.get('cron_month') or '*'
                     db.session.add(job_instance)
                     db.session.commit()
-                    return jsonify({'rst': '添加成功', 'code': 200})
+                    return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
                 else:
                     db.session.add(job_instance)
                     db.session.commit()
                     agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
-                    return jsonify({'rst': '添加成功', 'code': 200})
+                    return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
             except Exception as e:
-                return jsonify({'rst': e, 'code': 404})
+                return jsonify({'rst': e, 'code': 404, 'user_name': g.user.user_name})
         else:
-            return jsonify({'rst': '添加失败，没有数据', 'code': 404})
+            return jsonify({'rst': '添加失败，没有数据', 'code': 404, 'user_name': g.user.user_name})
 
 
 class JobDetail(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='任务详情',
         parameters=[{
@@ -567,11 +613,18 @@ class JobDetail(flask_restful.Resource):
             "required": True,
             "paramType": "path",
             "dataType": 'int'
-        }]
+        }, {
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, ]
     )
     def get(self, job_id):
         try:
             job_instance = JobInstance.query.filter_by(id=job_id).first()
+            print(job_instance.project_id)
             # print(I.split('=') for I in job_instance.spider_arguments.split(","))
             if job_instance.spider_arguments:
                 daemon = dict((job_instance.spider_arguments.split("="),))['daemon']
@@ -605,18 +658,26 @@ class JobDetail(flask_restful.Resource):
                 'server': daemon,
                 'create_time': job_instance.date_created.strftime('%Y-%m-%d %H:%M:%S'),
                 'update_time': job_instance.date_modified.strftime('%Y-%m-%d %H:%M:%S'),
+                'creator': User.query.filter_by(id=job_instance.user_id).first().user_name,
             }
-            return jsonify({'rst': rst, 'code': 200})
+            return jsonify({'rst': rst, 'code': 200, 'user_name': g.user.user_name})
 
         except Exception as e:
-            return jsonify({'rst': False, 'code': 404, 'error': e})
+            return jsonify({'rst': False, 'code': 404, 'error': e, 'user_name': g.user.user_name})
 
 
 class JobDetailCtrl(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='修改任务',
         notes="",
         parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
             "name": "job_id",
             "description": "job_id 任务的id",
             "required": True,
@@ -763,22 +824,29 @@ class JobDetailCtrl(flask_restful.Resource):
                     job_instance.cron_month = post_data.get('cron_month') or '*'
                     job_instance.date_modified = datetime.datetime.now()
                     db.session.commit()
-                    return jsonify({'rst': '修改成功', 'code': 200})
+                    return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
                 else:
                     job_instance.date_modified = datetime.datetime.now()
                     db.session.commit()
                     agent.start_spider(job_instance)
-                    return jsonify({'rst': '修改成功', 'code': 200})
+                    return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
             except Exception as e:
-                return jsonify({'rst': '修改失败 %s' % e, 'code': 404})
+                return jsonify({'rst': '修改失败 %s' % e, 'code': 404, 'user_name': g.user.user_name})
         else:
-            return jsonify({'rst': '修改失败，没有数据', 'code': 404})
+            return jsonify({'rst': '修改失败，没有数据', 'code': 404, 'user_name': g.user.user_name})
 
 
 class JobExecutionCtrl(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='任务执行情况 ',
         parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
             "name": "page",
             "description": "page 页数",
             "required": True,
@@ -822,6 +890,7 @@ class JobExecutionCtrl(flask_restful.Resource):
         response['total_page'] = total_page
         response['rsts'] = rsts
         response['job_name_list'] = job_name_list
+        response['user_name'] = g.user.user_name
         return jsonify(response)
 
 
@@ -853,6 +922,7 @@ class JobExecutionDetailCtrl(flask_restful.Resource):
 
 
 class WebMonitorCtrl(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='网站监测情况 ',
         parameters=[{
@@ -861,9 +931,14 @@ class WebMonitorCtrl(flask_restful.Resource):
             "required": True,
             "paramType": "path",
             "dataType": 'int'
-        }]
+        }, {
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, ]
     )
-    @auth.login_required
     def get(self, page):
         target_web_monitors = WebMonitor.query
         target_web_list = []
@@ -893,14 +968,21 @@ class WebMonitorCtrl(flask_restful.Resource):
         response['total_page'] = total_page
         response['rsts'] = rsts
         response['target_web_list'] = target_web_list
-        response['user'] = g.user.user_name
+        response['user_name'] = g.user.user_name
         return jsonify(response)
 
 
 class WebMonitorDetailCtrl(flask_restful.Resource):
+    @auth.login_required
     @swagger.operation(
         summary='网站监控日志 ',
         parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
             "name": "web_id",
             "description": "web_id ",
             "required": True,
@@ -938,6 +1020,7 @@ class WebMonitorDetailCtrl(flask_restful.Resource):
         rsts['target_web_monitor_log'] = log
         rsts['total_page'] = total_page
         rsts['total_log_num'] = target_web_monitor_logs_num
+        rsts['user_name'] = g.user.user_name
         return jsonify(rsts)
 
 
