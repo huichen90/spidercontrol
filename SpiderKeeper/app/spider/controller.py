@@ -32,6 +32,7 @@ api_spider_bp = Blueprint('spider', __name__)
 class UserRegister(flask_restful.Resource):
     @swagger.operation(
         summary='用户注册',
+        notes='注册完成后需要从数据库激活',
         parameters=[{
             "name": "user_name",
             "description": "用户名",
@@ -55,7 +56,7 @@ class UserRegister(flask_restful.Resource):
                 user.password = post_data['password']
                 db.session.add(user)
                 db.session.commit()
-                return jsonify({'rst': '注册成功', 'code': 201, 'user_name': user.user_name})
+                return jsonify({'rst': '注册成功，需要从数据库激活才能使用', 'code': 201, 'user_name': user.user_name})
             except Exception as e:
                 return jsonify({'rst': '注册失败，用户名已存在', 'code': 404})
 
@@ -96,7 +97,7 @@ def verify_password(username_or_token, password):
     post_data = request.form
     if request.path == "/api/user/login":
         user = User.query.filter_by(user_name=post_data.get('username_or_token')).first()
-        if not user or not user.verify_password(post_data.get('password')):
+        if not user or not user.verify_password(post_data.get('password')) or not user.confirmed:
             return False
     else:
         user = User.verify_auth_token(request.headers.get('username_or_token'))
@@ -104,22 +105,6 @@ def verify_password(username_or_token, password):
             return False
     g.user = user
     return True
-
-    # def post(self):
-    #     post_data = request.form
-    #     if post_data:
-    #         user = User.query.filter_by(user_name=post_data.get('user_name')).first()
-    #         if not user:
-    #             return False
-    #         elif not user.confirmed:
-    #             return jsonify({'rst': '账户未激活', 'code': 400, })
-    #         elif user.verify_password(post_data.get('password')):
-    #             g.user = user
-    #             token = g.user.generate_auth_token()
-    #             return jsonify({'rst': '登陆成功', 'token': token.decode('ascii'), 'code': 200})
-    #
-    #         else:
-    #             return False
 
 
 @app.route('/api/resource')
