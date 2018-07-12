@@ -109,6 +109,7 @@ class JobRunTime():
     LONGTIME = '长期'
     INTERVAL = '设定区间'
 
+
 class UploadTimeType():
     AUTO = '任务运行周期内最新'
     INTERVAL = '设定区间'
@@ -118,7 +119,7 @@ class JobInstance(Base):
     __tablename__ = 'job_instance'
     '''爬虫任务表'''
     job_name = db.Column(db.String(50))  # 任务名称
-    # spider_type = db.Column(db.String(50))  # 采集形式
+    spider_type = db.Column(db.String(50))  # 采集形式
     keywords = db.Column(db.String(50))     # 关键词
     project_id = db.Column(db.INTEGER, nullable=False, index=True)  # 工程id 可以用来查询目标网站（工程名可以用目标网站命名）
     spider_name = db.Column(db.String(100), nullable=False, index=True)   # 采集形式（关键词采集/板块采集）
@@ -143,6 +144,7 @@ class JobInstance(Base):
     cron_month = db.Column(db.String(20), default="*")
     enabled = db.Column(db.INTEGER, default=0)  # 0/-1/1  # 任务状态
     user_id = db.Column(db.INTEGER)             # 创建者id
+    pri = db.Column(db.String(20))              # 紧急\常规
 
     def to_dict(self):
         return {'id': self.id,

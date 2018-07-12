@@ -1,5 +1,6 @@
 import datetime
 import os
+import random
 import tempfile
 
 import flask_restful
@@ -14,7 +15,6 @@ from flask import session
 from flask_restful_swagger import swagger
 from werkzeug.utils import secure_filename
 from flask.ext.httpauth import HTTPBasicAuth
-
 
 from SpiderKeeper.app import db, api, agent, app
 from SpiderKeeper.app.spider.model import JobInstance, Project, JobExecution, SpiderInstance, JobRunType, Videoitems, \
@@ -41,12 +41,12 @@ class UserRegister(flask_restful.Resource):
             "dataType": 'string'
         },
             {
-            "name": "password",
-            "description": "用户密码",
-            "required": True,
-            "paramType": "form",
-            "dataType": 'string'
-        }])
+                "name": "password",
+                "description": "用户密码",
+                "required": True,
+                "paramType": "form",
+                "dataType": 'string'
+            }])
     def post(self):
         post_data = request.form
         if post_data:
@@ -110,7 +110,7 @@ def verify_password(username_or_token, password):
 @app.route('/api/resource')
 @auth.login_required
 def get_resource():
-    return jsonify({'data': 'Hello, %s!' % g.user.user_name })
+    return jsonify({'data': 'Hello, %s!' % g.user.user_name})
 
 
 class ProjectCtrl(flask_restful.Resource):
@@ -497,18 +497,18 @@ class JobCtrl(flask_restful.Resource):
             'rst': {"spider_type": [
                 {"关键词采集": {"目标网站": target_webs1}},
                 {"板块采集": {"目标网站": {'name': 'youtube',
-                                        '板块名': ["板块一", "板块二", "板块三"]
-                                        },
+                                   "板块名": ["板块一", "板块二", "板块三"],
+                                   },
                           }},
-                                ]
-                    },
+            ],
+                "servers": SERVERS},
             'code': 200
-                    })
+        })
 
     @auth.login_required
     @swagger.operation(
         summary='添加新的任务',
-        notes="json keys: <br>" + "<br>".join(JOB_INSTANCE_FIELDS),
+        notes="这是用来添加任务的，现在只支持单个目标网站，单个关键字",
         parameters=[{
             "name": "username_or_token",
             "description": "token",
@@ -522,7 +522,7 @@ class JobCtrl(flask_restful.Resource):
             "paramType": "form",
             "dataType": 'string'
         }, {
-            "name": "spider_name",
+            "name": "spider_type",
             "description": "采集形式(关键词采集/板块采集)--",
             "required": True,
             "paramType": "form",
@@ -609,22 +609,41 @@ class JobCtrl(flask_restful.Resource):
             {
                 "name": "daemon",
                 "description": "服务器（auto或者服务器ip）",
-                "required": False,
+                "required": True,
+                "paramType": "form",
+                "dataType": 'string'
+            },
+            {
+                "name": "pri",
+                "description": "优先级，紧急或者常规",
+                "required": True,
                 "paramType": "form",
                 "dataType": 'string'
             }
+
         ])
     def post(self):
+        """
+        任务的添加
+        :return:
+        """
         post_data = request.form
         if post_data:
             job_instance = JobInstance()
             try:
                 job_instance.user_id = g.user.id
                 job_instance.job_name = post_data.get('job_name')
-                job_instance.spider_name = post_data['spider_name']
+                # job_instance.spider_name = post_data['spider_name']
                 job_instance.project_id = post_data['project_id']
-                job_instance.keywords = post_data.get('keywords')
-                # job_instance.spider_type = post_data.get('spider_type')
+                # 由于任务创建是通过 project name and spider name 来区分爬虫的
+                # 当选则采集类型为关键词采集的时候，爬虫的名字为”关键词采集“，keywords为爬虫里的参数
+                # 当选择采集类型为板块采集的时候，爬虫的名字为”相应的爬虫的名字“，因为是通过keywords传参，故将其设为
+                job_instance.spider_type = post_data.get('spider_type')  # 采集样式
+                if job_instance.spider_type == '关键词采集':
+                    job_instance.spider_name = "关键词采集"
+                    job_instance.keywords = post_data.get('keywords')
+                else:
+                    job_instance.spider_name = post_data.get('keywords')
                 job_instance.run_time = post_data.get('run_time')  # 运行时间
                 if job_instance.run_time != '长期':
                     job_instance.start_date = post_data.get('start_date')
@@ -632,8 +651,9 @@ class JobCtrl(flask_restful.Resource):
                 job_instance.spider_freq = post_data.get('spider_freq')
                 job_instance.run_type = post_data.get('run_type')
                 job_instance.upload_time_type = post_data.get('upload_time_type')
-                job_instance.upload_time_start_date = post_data.get('upload_time_start_date')
-                job_instance.upload_time_end_date = post_data.get('upload_time_end_date')
+                if job_instance.upload_time_type == '设定区间':
+                    job_instance.upload_time_start_date = post_data.get('upload_time_start_date')
+                    job_instance.upload_time_end_date = post_data.get('upload_time_end_date')
                 job_instance.video_time_short = post_data.get('video_time_short')
                 job_instance.video_time_long = post_data.get('video_time_long')
                 if post_data.get('daemon') != 'auto':
@@ -644,22 +664,30 @@ class JobCtrl(flask_restful.Resource):
                     job_instance.spider_arguments = ','.join(spider_args)
                 # job_instance.spider_arguments = post_data.get('spider_arguments')
                 job_instance.priority = post_data.get('priority', 0)
+                job_instance.pri = post_data.get('pri')
                 if job_instance.run_type == "持续运行":
                     # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
                     job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
-                    job_instance.cron_hour = post_data.get('cron_hour') or '*'
+                    hour = random.randint(1, 14)
+                    job_instance.cron_hour = hour  # 添加随机的运行时间
+                    # job_instance.cron_hour = post_data.get('cron_hour') or '*'
                     # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
                     job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
                     job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                     job_instance.cron_month = post_data.get('cron_month') or '*'
                     db.session.add(job_instance)
                     db.session.commit()
+                    if job_instance.pri == '紧急':
+                        agent.start_spider(job_instance)
                     return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
                 else:
                     db.session.add(job_instance)
                     db.session.commit()
-                    agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
+                    if job_instance.pri == '紧急':
+                        agent.start_spider(job_instance)
+                    # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
                     return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
+
             except Exception as e:
                 return jsonify({'rst': e, 'code': 404, 'user_name': g.user.user_name})
         else:
@@ -733,7 +761,7 @@ class JobDetailCtrl(flask_restful.Resource):
     @auth.login_required
     @swagger.operation(
         summary='修改任务',
-        notes="",
+        notes="采集形式和目标网站不可修改",
         parameters=[{
             "name": "username_or_token",
             "description": "token",
@@ -751,98 +779,106 @@ class JobDetailCtrl(flask_restful.Resource):
             "description": "任务名称(20个字以内)",
             "required": False,
             "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "spider_name",
-            "description": "采集形式(关键词采集/板块采集)--",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "project_id",
-            "description": "目标网站（工程id 可以用来查询工程名可以用目标网站命名）",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'int'
-        }, {
-            "name": "keywords",
-            "description": "关键字/板块名",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "run_time",
-            "description": "任务运行时间（长期/设定区间）",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "start_date",
-            "description": "任务开始时间",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "end_date",
-            "description": "任务结束时间",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "spider_freq",
-            "description": "采集频率，以天为单位，需要将其分解映射为满足cron格式需求",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'float'
-        }, {
-            "name": "run_type",
-            "description": "持续运行/运行一次",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "upload_time_type",
-            "description": "设置视频上传时间的方式(任务运行周期内最新/设定区间)",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "upload_time_start_date",
-            "description": "最早的上传时间",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "upload_time_end_date",
-            "description": "最晚的上传时间",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "video_time_short",
-            "description": "爬去视频的最短时间",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'int'
-        }, {
-            "name": "video_time_long",
-            "description": "爬去视频的最长时间",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'int'
-        }, {
-            "name": "spider_arguments",
-            "description": "spider_arguments,  split by ','",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
-            "name": "daemon",
-            "description": "服务器（auto或者服务器ip）",
-            "required": False,
-            "paramType": "form",
-            "dataType": 'string'
-        }
+            "dataType": 'string',
+        },
+            # {
+            #     "name": "spider_type",
+            #     "description": "采集形式(关键词采集/板块采集)--",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # }, {
+            #     "name": "project_id",
+            #     "description": "目标网站（工程id 可以用来查询工程名可以用目标网站命名）",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'int'
+            # },
+            {
+                "name": "keywords",
+                "description": "关键字/板块名",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "run_time",
+                "description": "任务运行时间（长期/设定区间）",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "start_date",
+                "description": "任务开始时间",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "end_date",
+                "description": "任务结束时间",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "spider_freq",
+                "description": "采集频率，以天为单位，需要将其分解映射为满足cron格式需求",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'float'
+            }, {
+                "name": "run_type",
+                "description": "持续运行/运行一次",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "upload_time_type",
+                "description": "设置视频上传时间的方式(任务运行周期内最新/设定区间)",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "upload_time_start_date",
+                "description": "最早的上传时间",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "upload_time_end_date",
+                "description": "最晚的上传时间",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "video_time_short",
+                "description": "爬去视频的最短时间",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'int'
+            }, {
+                "name": "video_time_long",
+                "description": "爬去视频的最长时间",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'int'
+            }, {
+                "name": "spider_arguments",
+                "description": "spider_arguments,  split by ','",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "daemon",
+                "description": "服务器（auto或者服务器ip）",
+                "required": False,
+                "paramType": "form",
+                "dataType": 'string'
+            }, {
+                "name": "pri",
+                "description": "优先级，紧急或者常规",
+                "required": True,
+                "paramType": "form",
+                "dataType": 'string'
+            }
         ])
     def put(self, job_id):
         post_data = request.form
@@ -855,7 +891,7 @@ class JobDetailCtrl(flask_restful.Resource):
                 job_instance.spider_name = post_data['spider_name'] or job_instance.spider_name
                 job_instance.project_id = post_data['project_id'] or job_instance.project_id
                 job_instance.keywords = post_data.get('keywords') or job_instance.keywords
-                # job_instance.spider_type = post_data.get('spider_type')
+                job_instance.spider_type = post_data.get('spider_type') or job_instance.spider_type
                 job_instance.run_time = post_data.get('run_time') or job_instance.run_time  # 运行时间
                 if job_instance.run_time != '长期':
                     job_instance.start_date = post_data.get('start_date') or job_instance.start_date
@@ -877,6 +913,7 @@ class JobDetailCtrl(flask_restful.Resource):
                     job_instance.spider_arguments = ','.join(spider_args)
                 # job_instance.spider_arguments = post_data.get('spider_arguments')
                 job_instance.priority = post_data.get('priority', 0)
+                job_instance.pri = post_data.get('pri')
                 if job_instance.run_type == "持续运行":
                     # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
                     job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
@@ -887,11 +924,15 @@ class JobDetailCtrl(flask_restful.Resource):
                     job_instance.cron_month = post_data.get('cron_month') or '*'
                     job_instance.date_modified = datetime.datetime.now()
                     db.session.commit()
+                    if job_instance.pri == '紧急':
+                        agent.start_spider(job_instance)
                     return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
                 else:
                     job_instance.date_modified = datetime.datetime.now()
                     db.session.commit()
-                    agent.start_spider(job_instance)
+                    if job_instance.pri == '紧急':
+                        agent.start_spider(job_instance)
+                    # agent.start_spider(job_instance)
                     return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
             except Exception as e:
                 return jsonify({'rst': '修改失败 %s' % e, 'code': 404, 'user_name': g.user.user_name})
@@ -1095,7 +1136,7 @@ api.add_resource(UserLogin, "/api/user/login")  # 用户登录
 api.add_resource(JobCtrl, "/api/project/add_jobs")  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")  # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
-api.add_resource(JobDetailCtrl, "/api/project/update_jobs/<job_id>")     # 任务更新
+# api.add_resource(JobDetailCtrl, "/api/project/update_jobs/<job_id>")  # 任务更新
 api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
