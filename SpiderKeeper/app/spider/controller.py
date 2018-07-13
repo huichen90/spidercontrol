@@ -482,26 +482,25 @@ class JobCtrl(flask_restful.Resource):
               "服务器--servers",
     )
     def get(self):
-        rst = {}
+        target_webs = Project.query.all()
+        rst_list = []
+        for target_web in target_webs:
+            rst = {'project_id': target_web.id, 'project_name': target_web.project_name}  # 每遍历一次创建一个新的空字典，防止覆盖
+            plate_name = []
+            plates = SpiderInstance.query.filter_by(project_id=target_web.id).all()
+            for plate in plates:
+                plate_name.append(plate.spider_name)
+            while '关键词采集' in plate_name:
+                plate_name.remove('关键词采集')
+            rst['plate_name'] = plate_name
+            rst_list.append(rst)
         target_webs1 = [project.to_dict() for project in Project.query.all()]
-        # webs = []
-        # target_webs = {}
-        # for target_web in target_webs1:
-        #     webs.append(target_web)
-        # target_webs['target_webs'] = webs
-        # rst.append(target_webs)
-        servers = {'servers': SERVERS}
-        # rst.append(servers)
-        # print(rst)
+        servers = SERVERS
         return jsonify({
-            'rst': {"spider_type": [
-                {"关键词采集": {"目标网站": target_webs1}},
-                {"板块采集": {"目标网站": {'name': 'youtube',
-                                   "板块名": ["板块一", "板块二", "板块三"],
-                                   },
-                          }},
-            ],
-                "servers": SERVERS},
+            'rst': dict(spider_type=[
+                {"关键词采集": {"target_web": target_webs1}},
+                {"板块采集": {"target_web": rst_list}},
+            ], servers=servers),
             'code': 200
         })
 
