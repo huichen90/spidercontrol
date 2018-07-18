@@ -1,5 +1,6 @@
 import datetime
 import random
+import time
 from functools import reduce
 
 from SpiderKeeper.app import db
@@ -134,8 +135,12 @@ class SpiderAgent():
                 arguments['keywords'] = keywords
                 arguments['video_time_short'] = job_instance.video_time_short
                 arguments['video_time_long'] = job_instance.video_time_long
-                arguments['startDate'] = dts2ts(job_instance.upload_time_start_date)
-                arguments['endDate'] = dts2ts(job_instance.upload_time_end_date)
+                if job_instance.upload_time_type == '设定区间':                 # 任务运行周期内自动设定最优时间参数
+                    arguments['startDate'] = dts2ts(job_instance.upload_time_start_date)
+                    arguments['endDate'] = dts2ts(job_instance.upload_time_end_date)
+                else:
+                    arguments['startDate'] = int(time.time()) - 3600*24*job_instance.spider_freq
+                    arguments['endDate'] = int(time.time())
                 arguments['task_id'] = task_id   # 将任务id加入到爬虫
                 daemon_size = len(self.spider_service_instances)
                 if job_instance.priority == JobPriority.HIGH:
