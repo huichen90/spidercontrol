@@ -123,42 +123,83 @@ class SpiderAgent():
         project = Project.find_project_by_id(job_instance.project_id)
         spider_name = job_instance.spider_name
         task_id = job_instance.id
-        arguments = {}
-        if job_instance.spider_arguments:
-            arguments = dict(map(lambda x: x.split("="), job_instance.spider_arguments.split(",")))
-        threshold = 0
-        arguments['keywords'] = job_instance.keywords
-        arguments['video_time_short'] = job_instance.video_time_short
-        arguments['video_time_long'] = job_instance.video_time_long
-        arguments['startDate'] = dts2ts(job_instance.upload_time_start_date)
-        arguments['endDate'] = dts2ts(job_instance.upload_time_end_date)
-        arguments['task_id'] = task_id   # 将任务id加入到爬虫
-        daemon_size = len(self.spider_service_instances)
-        if job_instance.priority == JobPriority.HIGH:
-            threshold = int(daemon_size / 2)
-        if job_instance.priority == JobPriority.HIGHEST:
-            threshold = int(daemon_size)
-        threshold = 1 if threshold == 0 else threshold
-        candidates = self.spider_service_instances
-        leaders = []
-        if 'daemon' in arguments:
-            for candidate in candidates:
-                if candidate.server == arguments['daemon']:
-                    leaders = [candidate]
+        if job_instance.keywords is not None:
+            keywords_list = job_instance.keywords.strip(',').split(',')
+            for keywords in keywords_list:
+                arguments = {}
+                if job_instance.spider_arguments:
+                    arguments = dict(map(lambda x: x.split("="), job_instance.spider_arguments.split(",")))
+                threshold = 0       # 阈值
+                leaders = []
+                arguments['keywords'] = keywords
+                arguments['video_time_short'] = job_instance.video_time_short
+                arguments['video_time_long'] = job_instance.video_time_long
+                arguments['startDate'] = dts2ts(job_instance.upload_time_start_date)
+                arguments['endDate'] = dts2ts(job_instance.upload_time_end_date)
+                arguments['task_id'] = task_id   # 将任务id加入到爬虫
+                daemon_size = len(self.spider_service_instances)
+                if job_instance.priority == JobPriority.HIGH:
+                    threshold = int(daemon_size / 2)
+                if job_instance.priority == JobPriority.HIGHEST:
+                    threshold = int(daemon_size)
+                threshold = 1 if threshold == 0 else threshold
+                candidates = self.spider_service_instances
+                if 'daemon' in arguments:
+                    for candidate in candidates:
+                        if candidate.server == arguments['daemon']:
+                            leaders = [candidate]
+                else:
+                    # TODO optimize some better func to vote the leader
+                    for i in range(threshold):
+                        leaders.append(random.choice(candidates))
+                for leader in leaders:
+                    print(project.project_name, spider_name, arguments)
+                    serviec_job_id = leader.start_spider(project.project_name, spider_name, arguments)
+                    job_execution = JobExecution()
+                    job_execution.project_id = job_instance.project_id
+                    job_execution.service_job_execution_id = serviec_job_id
+                    job_execution.job_instance_id = job_instance.id
+                    job_execution.create_time = datetime.datetime.now()
+                    job_execution.running_on = leader.server
+                    db.session.add(job_execution)
+                    db.session.commit()
         else:
-            # TODO optimize some better func to vote the leader
-            for i in range(threshold):
-                leaders.append(random.choice(candidates))
-        for leader in leaders:
-            serviec_job_id = leader.start_spider(project.project_name, spider_name, arguments)
-            job_execution = JobExecution()
-            job_execution.project_id = job_instance.project_id
-            job_execution.service_job_execution_id = serviec_job_id
-            job_execution.job_instance_id = job_instance.id
-            job_execution.create_time = datetime.datetime.now()
-            job_execution.running_on = leader.server
-            db.session.add(job_execution)
-            db.session.commit()
+            arguments = {}
+            if job_instance.spider_arguments:
+                arguments = dict(map(lambda x: x.split("="), job_instance.spider_arguments.split(",")))
+            threshold = 0  # 阈值
+            leaders = []
+            arguments['video_time_short'] = job_instance.video_time_short
+            arguments['video_time_long'] = job_instance.video_time_long
+            arguments['startDate'] = dts2ts(job_instance.upload_time_start_date)
+            arguments['endDate'] = dts2ts(job_instance.upload_time_end_date)
+            arguments['task_id'] = task_id  # 将任务id加入到爬虫
+            daemon_size = len(self.spider_service_instances)
+            if job_instance.priority == JobPriority.HIGH:
+                threshold = int(daemon_size / 2)
+            if job_instance.priority == JobPriority.HIGHEST:
+                threshold = int(daemon_size)
+            threshold = 1 if threshold == 0 else threshold
+            candidates = self.spider_service_instances
+            if 'daemon' in arguments:
+                for candidate in candidates:
+                    if candidate.server == arguments['daemon']:
+                        leaders = [candidate]
+            else:
+                # TODO optimize some better func to vote the leader
+                for i in range(threshold):
+                    leaders.append(random.choice(candidates))
+            for leader in leaders:
+                print(project.project_name, spider_name, arguments)
+                serviec_job_id = leader.start_spider(project.project_name, spider_name, arguments)
+                job_execution = JobExecution()
+                job_execution.project_id = job_instance.project_id
+                job_execution.service_job_execution_id = serviec_job_id
+                job_execution.job_instance_id = job_instance.id
+                job_execution.create_time = datetime.datetime.now()
+                job_execution.running_on = leader.server
+                db.session.add(job_execution)
+                db.session.commit()
 
     def cancel_spider(self, job_execution):
         job_instance = JobInstance.find_job_instance_by_id(job_execution.job_instance_id)

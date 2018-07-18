@@ -1,3 +1,4 @@
+import copy
 import datetime
 import os
 import random
@@ -507,7 +508,7 @@ class JobCtrl(flask_restful.Resource):
     @auth.login_required
     @swagger.operation(
         summary='添加新的任务',
-        notes="这是用来添加任务的，现在只支持单个目标网站，单个关键字",
+        notes="这是用来添加任务的，现在只支持单个目标网站，多个关键字",
         parameters=[{
             "name": "username_or_token",
             "description": "token",
@@ -634,15 +635,6 @@ class JobCtrl(flask_restful.Resource):
                 job_instance.job_name = post_data.get('job_name')
                 # job_instance.spider_name = post_data['spider_name']
                 job_instance.project_id = post_data['project_id']
-                # 由于任务创建是通过 project name and spider name 来区分爬虫的
-                # 当选则采集类型为关键词采集的时候，爬虫的名字为”关键词采集“，keywords为爬虫里的参数
-                # 当选择采集类型为板块采集的时候，爬虫的名字为”相应的爬虫的名字“，因为是通过keywords传参，故将其设为
-                job_instance.spider_type = post_data.get('spider_type')  # 采集样式
-                if job_instance.spider_type == '关键词采集':
-                    job_instance.spider_name = "关键词采集"
-                    job_instance.keywords = post_data.get('keywords')
-                else:
-                    job_instance.spider_name = post_data.get('keywords')
                 job_instance.run_time = post_data.get('run_time')  # 运行时间
                 if job_instance.run_time != '长期':
                     job_instance.start_date = post_data.get('start_date')
@@ -664,29 +656,64 @@ class JobCtrl(flask_restful.Resource):
                 # job_instance.spider_arguments = post_data.get('spider_arguments')
                 job_instance.priority = post_data.get('priority', 0)
                 job_instance.pri = post_data.get('pri')
-                if job_instance.run_type == "持续运行":
-                    # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
-                    job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
-                    hour = random.randint(1, 14)
-                    job_instance.cron_hour = hour  # 添加随机的运行时间
-                    # job_instance.cron_hour = post_data.get('cron_hour') or '*'
-                    # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
-                    job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
-                    job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
-                    job_instance.cron_month = post_data.get('cron_month') or '*'
-                    db.session.add(job_instance)
-                    db.session.commit()
-                    if job_instance.pri == '紧急':
-                        agent.start_spider(job_instance)
-                    return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
+                # 由于任务创建是通过 project name and spider name 来区分爬虫的
+                # 当选则采集类型为关键词采集的时候，爬虫的名字为”关键词采集“，keywords为爬虫里的参数
+                # 当选择采集类型为板块采集的时候，爬虫的名字为”相应的爬虫的名字“，因为是通过keywords传参，故将其设为
+                job_instance.spider_type = post_data.get('spider_type')  # 采集样式
+                if job_instance.spider_type == '关键词采集':
+                    job_instance.spider_name = "关键词采集"
+                    job_instance.keywords = post_data.get('keywords')
+                    if job_instance.run_type == "持续运行":
+                        # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
+                        job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
+                        hour = random.randint(1, 14)
+                        job_instance.cron_hour = hour  # 添加随机的运行时间
+                        # job_instance.cron_hour = post_data.get('cron_hour') or '*'
+                        # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
+                        job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                        job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
+                        job_instance.cron_month = post_data.get('cron_month') or '*'
+                        db.session.add(job_instance)
+                        # db.session.commit()
+                        if job_instance.pri == '紧急':
+                            agent.start_spider(job_instance)
+                        return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
+                    else:
+                        db.session.add(job_instance)
+                        # db.session.commit()
+                        if job_instance.pri == '紧急':
+                            agent.start_spider(job_instance)
+                        # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
+                        return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
                 else:
-                    db.session.add(job_instance)
+                    keywords_list = post_data.get('keywords').strip(',').split(',')
+                    for keywords in keywords_list:
+                        print(keywords)
+                        new_job_instance = copy.deepcopy(job_instance)
+                        new_job_instance.spider_name = keywords
+                        if new_job_instance.run_type == "持续运行":
+                            # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
+                            new_job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
+                            hour = random.randint(1, 14)
+                            new_job_instance.cron_hour = hour  # 添加随机的运行时间
+                            # job_instance.cron_hour = post_data.get('cron_hour') or '*'
+                            # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
+                            new_job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                            new_job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
+                            new_job_instance.cron_month = post_data.get('cron_month') or '*'
+                            db.session.add(new_job_instance)
+                            # db.session.commit()
+                            if job_instance.pri == '紧急':
+                                agent.start_spider(new_job_instance)
+                            # return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
+                        else:
+                            db.session.add(new_job_instance)
+                            # db.session.commit()
+                            if job_instance.pri == '紧急':
+                                agent.start_spider(new_job_instance)
+                            # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
                     db.session.commit()
-                    if job_instance.pri == '紧急':
-                        agent.start_spider(job_instance)
-                    # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
                     return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
-
             except Exception as e:
                 return jsonify({'rst': e, 'code': 404, 'user_name': g.user.user_name})
         else:

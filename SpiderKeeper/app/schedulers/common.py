@@ -41,11 +41,11 @@ def sync_spiders():
 
 
 def run_spider_job(job_instance_id):
-    '''
+    """
     run spider by scheduler
     :param job_instance_id:
     :return:
-    '''
+    """
     try:
         job_instance = JobInstance.find_job_instance_by_id(job_instance_id)
         agent.start_spider(job_instance)
@@ -56,13 +56,13 @@ def run_spider_job(job_instance_id):
 
 
 def reload_runnable_spider_job_execution():
-    '''
+    """
     add periodic job to scheduler
     :return:
-    '''
-    running_job_ids = set([job.id for job in scheduler.get_jobs()])
+    """
+    running_job_ids = set([job.id for job in scheduler.get_jobs()])             # 正在运行的任务id
     app.logger.debug('[running_job_ids] %s' % ','.join(running_job_ids))
-    available_job_ids = set()
+    available_job_ids = set()                                                   # 可运行的任务id
     # add new job to schedule
     for job_instance in JobInstance.query.filter_by(enabled=0, run_type="持续运行").all():
         job_id = "spider_job_%s:%s" % (job_instance.id, int(time.mktime(job_instance.date_modified.timetuple())))
