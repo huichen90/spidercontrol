@@ -984,12 +984,58 @@ class JobExecutionCtrl(flask_restful.Resource):
             "required": True,
             "paramType": "path",
             "dataType": 'int'
+        }, {
+            "name": "start_date",
+            "description": "开始时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        }, {
+            "name": "end_date",
+            "description": "结束时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        }, {
+            "name": "job_id",
+            "description": "任务id",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'int'
+        }, {
+            "name": "job_status",
+            "description": "任务状态",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'int'
+        }, {
+            "name": "running_status",
+            "description": "执行情况",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'int'
         }]
     )
     def get(self, page):
+        start_date = request.args.get('start_date')      # 开始时间
+        end_date = request.args.get('end_date')          # 结束时间
+        job_id = request.args.get('job_id')          # 任务id
+        job_status = request.args.get('job_status')      # 任务状态
+        running_status = request.args.get('running_status')    # 执行情况
         job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id))
+        if start_date:
+            job_excutions = job_excutions.filter_by(JobExecution.date_created >= start_date)
+        if end_date:
+            job_excutions = job_excutions.filter_by(JobExecution.date_created <= end_date)
+        if job_id:
+            job_excutions = job_excutions.filter_by(job_instance_id=job_id)     # 任务id
+        if job_status:
+            job_excutions = job_excutions.filter_by(job_status=job_status)
+        if running_status:
+            job_excutions = job_excutions.filter_by(running_status=end_date)
+
         job_name_list = []
-        for job_excution1 in job_excutions.all():
+        for job_excution1 in JobExecution.query.all():
             job_id = job_excution1.job_instance_id
             job_name_list.append({'job_id': job_id,
                                   'job_name': JobInstance.query.filter_by(id=job_id).first().job_name})
@@ -1069,12 +1115,30 @@ class WebMonitorCtrl(flask_restful.Resource):
             "required": True,
             "paramType": "header",
             "dataType": 'string'
+        }, {
+            "name": "web_name",
+            "description": "监控网站名称",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        }, {
+            "name": "status",
+            "description": "网站状态",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
         }, ]
     )
     def get(self, page):
+        web_name = request.args.get('web_name')
+        status = request.args.get('status')
         target_web_monitors = WebMonitor.query
+        if web_name:
+            target_web_monitors = target_web_monitors.filter_by(web_name=web_name)
+        if status:
+            target_web_monitors = target_web_monitors.filter_by(status=status)
         target_web_list = []
-        for target_web in target_web_monitors.all():
+        for target_web in WebMonitor.query.all():
             target_web_list.append({'web_id': target_web.id, 'web_name': target_web.web_name})
         page = int(page)
         pagination = target_web_monitors.paginate(page, per_page=10, error_out=False)
