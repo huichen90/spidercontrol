@@ -639,6 +639,9 @@ class JobCtrl(flask_restful.Resource):
                 if job_instance.run_time != '长期':
                     job_instance.start_date = post_data.get('start_date')
                     job_instance.end_date = post_data.get('end_date')
+                else:
+                    job_instance.start_date = '1999-01-01'
+                    job_instance.end_date = '2222-02-02'
                 job_instance.spider_freq = post_data.get('spider_freq')
                 job_instance.run_type = post_data.get('run_type')
                 job_instance.upload_time_type = post_data.get('upload_time_type')
