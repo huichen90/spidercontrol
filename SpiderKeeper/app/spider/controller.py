@@ -254,95 +254,66 @@ class VideosCtrl(flask_restful.Resource):
             "required": True,
             "paramType": "path",
             "dataType": 'int'
-        }]
-    )
-    def get(self, page):
-        videos = Videoitems.query.order_by(db.desc(Videoitems.id))
-        web_list = []
-        job_name_list = []
-        for job_instance in JobInstance.query.all():
-            job_name_list.append(job_instance.job_name)
-        for target_web in WebMonitor.query.all():
-            web_list.append(target_web.web_name)
-        page = int(page)
-        pagination = videos.paginate(page, per_page=10, error_out=False)
-        videos = pagination.items
-        video_num = pagination.total
-        total_page = pagination.pages
-        response = {}
-        rsts = []
-        for video in videos:
-            rst = {
-                'video_id': video.id,
-                'task_id': video.task_id,
-                'title': video.title,
-                'spider_time': video.spider_time,
-                'site_name': video.site_name,
-                'job_name': JobInstance.query.filter_by(id=video.task_id).first().job_name,
-
-            }
-            rsts.append(rst)
-        response['video_num'] = video_num
-        response['total_page'] = total_page
-        response['rsts'] = rsts
-        response['web_list'] = web_list
-        response['job_name_list'] = job_name_list
-        response['user_name'] = g.user.user_name
-        return jsonify({'rst': response, 'code': 200, })
-
-    @auth.login_required
-    @swagger.operation(
-        summary='采集结果搜索',
-        parameters=[{
-            "name": "username_or_token",
-            "description": "token",
-            "required": True,
-            "paramType": "header",
+        },
+        {
+            "name": "start_date",
+            "description": "开始时间",
+            "required": False,
+            "paramType": "query",
             "dataType": 'string'
         }, {
-            "name": "spider_time_start",
-            "description": "爬取视频的最早时间",
-            "required": True,
-            "paramType": "form",
+            "name": "end_date",
+            "description": "结束时间",
+            "required": False,
+            "paramType": "query",
             "dataType": 'string'
-        }, {
-            "name": "spider_time_end",
-            "description": "爬去视频的最晚时间",
-            "required": True,
-            "paramType": "form",
-            "dataType": 'string'
-        }, {
+        },  {
             "name": "title",
             "description": "视频名称，实为关键字查询",
-            "required": True,
-            "paramType": "form",
+            "required": False,
+            "paramType": "query",
             "dataType": 'string'
         }, {
             "name": "site_name",
             "description": "视频来源",
-            "required": True,
-            "paramType": "form",
+            "required": False,
+            "paramType": "query",
             "dataType": 'string'
         }, {
-            "name": "job_name",
-            "description": "任务名称",
-            "required": True,
-            "paramType": "path",
-            "dataType": 'string'
+            "name": "job_id",
+            "description": "任务名称(任务id)",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'int'
         }]
     )
-    def post(self, page):
+    def get(self, page):
+        start_date = request.args.get('start_date')  # 开始时间
+        end_date = request.args.get('end_date')  # 结束时间
+        title = request.args.get('title')  # 视频名称
+        site_name = request.args.get('site_name')  # 视频来源
+        job_id = request.args.get('job_id')  # 任务名称
+
+        videos = Videoitems.query.order_by(db.desc(Videoitems.id))
+        if start_date:
+            videos = videos.filter(Videoitems.spider_time >= start_date)
+        if end_date:
+            videos = videos.filter(Videoitems.spider_time <= end_date)
+        if title:
+            videos = videos.filter(Videoitems.title_cn.contains(title))  # 视频名称
+        if site_name:
+            videos = videos.filter_by(site_name=site_name)
+        if job_id:
+            videos = videos.filter_by(task_id=job_id)
 
         web_list = []
         job_name_list = []
         for job_instance in JobInstance.query.all():
-            job_name_list.append(job_instance.job_name)
+            job = {'job_name': job_instance.job_name, 'job_id': job_instance.id}
+            job_name_list.append(job)
         for target_web in WebMonitor.query.all():
             web_list.append(target_web.web_name)
-        # 分页
         page = int(page)
-        # 条件查询
-        videos = Videoitems.query.filter_by().order_by(db.desc(Videoitems.id))
         pagination = videos.paginate(page, per_page=10, error_out=False)
         videos = pagination.items
         video_num = pagination.total
@@ -812,19 +783,6 @@ class JobDetailCtrl(flask_restful.Resource):
             "paramType": "form",
             "dataType": 'string',
         },
-            # {
-            #     "name": "spider_type",
-            #     "description": "采集形式(关键词采集/板块采集)--",
-            #     "required": False,
-            #     "paramType": "form",
-            #     "dataType": 'string'
-            # }, {
-            #     "name": "project_id",
-            #     "description": "目标网站（工程id 可以用来查询工程名可以用目标网站命名）",
-            #     "required": False,
-            #     "paramType": "form",
-            #     "dataType": 'int'
-            # },
             {
                 "name": "keywords",
                 "description": "关键字/板块名",
@@ -1005,15 +963,9 @@ class JobExecutionCtrl(flask_restful.Resource):
             "required": False,
             "paramType": "query",
             "dataType": 'int'
-        }, {
-            "name": "job_status",
-            "description": "任务状态",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'int'
-        }, {
+        },  {
             "name": "running_status",
-            "description": "执行情况",
+            "description": "执行情况:等待执行为0，已执行为2,停止执行为3,执行错误为9",
             "required": False,
             "paramType": "query",
             "dataType": 'int'
@@ -1023,19 +975,19 @@ class JobExecutionCtrl(flask_restful.Resource):
         start_date = request.args.get('start_date')      # 开始时间
         end_date = request.args.get('end_date')          # 结束时间
         job_id = request.args.get('job_id')          # 任务id
-        job_status = request.args.get('job_status')      # 任务状态
+        # job_status = request.args.get('job_status')      # 任务状态
         running_status = request.args.get('running_status')    # 执行情况
         job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id))
         if start_date:
-            job_excutions = job_excutions.filter_by(JobExecution.date_created >= start_date)
+            job_excutions = job_excutions.filter(JobExecution.date_created >= start_date)
         if end_date:
-            job_excutions = job_excutions.filter_by(JobExecution.date_created <= end_date)
+            job_excutions = job_excutions.filter(JobExecution.date_created <= end_date)
         if job_id:
             job_excutions = job_excutions.filter_by(job_instance_id=job_id)     # 任务id
-        if job_status:
-            job_excutions = job_excutions.filter_by(job_status=job_status)
+        # if job_status:
+        #     job_excutions = job_excutions.filter_by(job_status=job_status)
         if running_status:
-            job_excutions = job_excutions.filter_by(running_status=end_date)
+            job_excutions = job_excutions.filter_by(running_status=running_status)
 
         job_name_list = []
         for job_excution1 in JobExecution.query.all():
@@ -1063,6 +1015,7 @@ class JobExecutionCtrl(flask_restful.Resource):
                 'date': job_excution.start_time.strftime('%Y-%m-%d'),
                 'job_status': job_status,
                 'enabled': job_instance.enabled,
+                'running_status': job_instance.running,
                 'video_num': Videoitems.query.filter_by(spider_time=job_excution.start_time.strftime('%Y-%m-%d'),
                                                         task_id=job_excution.job_instance_id).count()
             }
@@ -1235,6 +1188,7 @@ api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
+# api.add_resource(SpiderResult)
 api.add_resource(WebMonitorCtrl, "/api/web_monitor/<page>")  # 网站监控列表
 api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>/<page>")  # 网站监控日志
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
