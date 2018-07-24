@@ -719,44 +719,44 @@ class JobDetail(flask_restful.Resource):
     def get(self, job_id):
         try:
             job_instance = JobInstance.query.filter_by(id=job_id).first()
-            print(job_instance.project_id)
-            # print(I.split('=') for I in job_instance.spider_arguments.split(","))
-            if job_instance.spider_arguments:
-                daemon = dict((job_instance.spider_arguments.split("="),))['daemon']
-            else:
-                daemon = None
-            if job_instance.run_time == '长期':
-                run_time = '长期'
-            else:
-                start_date = job_instance.start_date.strftime('%Y-%m-%d'),
-                end_date = job_instance.end_date.strftime('%Y-%m-%d'),
-                print(start_date)
-                run_time = str(start_date[0]) + '至' + str(end_date[0])
-            if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
-                job_status = '运行中'
-            elif job_instance.enabled == -1:
-                job_status = '已暂停'
-            else:
-                job_status = '运行完成'
-            rst = {
-                'job_status': job_status,
-                'job_name': job_instance.job_name,
-                'spider_type': job_instance.spider_name,
-                'target_web': Project.query.filter_by(id=job_instance.project_id).first().project_name,
-                'spider_content': job_instance.keywords,
-                'run_time': run_time,
-                'spider_freq': job_instance.spider_freq,
-                'run_times': job_instance.run_type,
-                'video_upload_time': job_instance.upload_time_type,
-                'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
-                'enabled': job_instance.enabled,
-                'server': daemon,
-                'create_time': job_instance.date_created.strftime('%Y-%m-%d %H:%M:%S'),
-                'update_time': job_instance.date_modified.strftime('%Y-%m-%d %H:%M:%S'),
-                'creator': User.query.filter_by(id=job_instance.user_id).first().user_name,
-            }
-            return jsonify({'rst': rst, 'code': 200, 'user_name': g.user.user_name})
-
+            if job_instance is not None:
+                # print(I.split('=') for I in job_instance.spider_arguments.split(","))
+                if job_instance.spider_arguments:
+                    daemon = dict((job_instance.spider_arguments.split("="),))['daemon']
+                else:
+                    daemon = None
+                if job_instance.run_time == '长期':
+                    run_time = '长期'
+                else:
+                    start_date = job_instance.start_date.strftime('%Y-%m-%d'),
+                    end_date = job_instance.end_date.strftime('%Y-%m-%d'),
+                    print(start_date)
+                    run_time = str(start_date[0]) + '至' + str(end_date[0])
+                if job_instance.run_type == '持续运行' and job_instance.enabled == 0:
+                    job_status = '运行中'
+                elif job_instance.enabled == -1:
+                    job_status = '已暂停'
+                else:
+                    job_status = '运行完成'
+                rst = {
+                    'job_status': job_status,
+                    'job_name': job_instance.job_name,
+                    'spider_type': job_instance.spider_name,
+                    'target_web': Project.query.filter_by(id=job_instance.project_id).first().project_name,
+                    'spider_content': job_instance.keywords,
+                    'run_time': run_time,
+                    'spider_freq': job_instance.spider_freq,
+                    'run_times': job_instance.run_type,
+                    'video_upload_time': job_instance.upload_time_type,
+                    'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
+                    'enabled': job_instance.enabled,
+                    'server': daemon,
+                    'create_time': job_instance.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+                    'update_time': job_instance.date_modified.strftime('%Y-%m-%d %H:%M:%S'),
+                    'creator': User.query.filter_by(id=job_instance.user_id).first().user_name,
+                }
+                return jsonify({'rst': rst, 'code': 200, 'user_name': g.user.user_name})
+            return jsonify({'rst': '没有你想要找的数据哦', 'code': 404, 'user_name': g.user.user_name})
         except Exception as e:
             return jsonify({'rst': False, 'code': 404, 'error': e, 'user_name': g.user.user_name})
 
