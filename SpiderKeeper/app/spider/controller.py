@@ -669,11 +669,13 @@ class JobCtrl(flask_restful.Resource):
                         new_job_instance.spider_name = keywords
                         if new_job_instance.run_type == "持续运行":
                             # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
-                            new_job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
+                            # job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
                             hour = random.randint(1, 14)
+                            minutes = random.randint(1, 59)
+                            new_job_instance.cron_minutes = minutes
                             new_job_instance.cron_hour = hour  # 添加随机的运行时间
                             # job_instance.cron_hour = post_data.get('cron_hour') or '*'
-                            # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
+                            new_job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
                             new_job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
                             new_job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                             new_job_instance.cron_month = post_data.get('cron_month') or '*'
