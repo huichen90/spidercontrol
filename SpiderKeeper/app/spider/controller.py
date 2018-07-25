@@ -1,5 +1,6 @@
 import copy
 import datetime
+import json
 import os
 import random
 import tempfile
@@ -1320,6 +1321,90 @@ class SpiderResult1(flask_restful.Resource):
         return jsonify(response)
 
 
+class SpiderResult2(flask_restful.Resource):
+    @auth.login_required
+    @swagger.operation(
+        summary='采集结果统计----新增结果统计',
+        parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string',
+        },
+            {
+            "name": "start_date",
+            "description": "各任务采集结果统计的开始时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        },
+            {
+            "name": "end_date",
+            "description": "各任务采集结果统计的结束时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        },
+        ]
+    )
+    def get(self):
+        videos = Videoitems.query
+
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        if start_date:
+            videos = videos.filter(Videoitems.spider_time >= start_date)
+        if end_date:
+            videos = videos.filter(Videoitems.spider_time <= end_date)
+        # days = start_date - end_date
+        # weeks = days// 7
+        # months = days // 30
+        response = {}
+        rsts = {}
+        today = datetime.date.today()
+        oneday = datetime.timedelta(days=1)
+        oneweek = datetime.timedelta(weeks=1)
+        onemonth = datetime.timedelta(weeks=4)
+
+        # 过去一个月按天统计增量
+        last_30d_submits_count = []
+        for d in range(0, 30):
+            rst = {}
+            date = today - oneday*d
+            count = videos.filter(Videoitems.spider_time.between(date-oneday, date)).count()
+            rst["date"] = date.strftime('%Y-%m-%d')
+            rst["count"] = str(count)
+            last_30d_submits_count.append(rst)
+
+        # 过去十周按周的统计
+        last_10w_submits_count = []
+        for w in range(0, 10):
+            rst = {}
+            date = today - oneweek * w
+            count = videos.filter(Videoitems.spider_time.between(date-oneweek, date)).count()
+            rst['date'] = date.strftime('%Y-%m-%d')
+            rst['count'] = count
+            last_10w_submits_count.append(rst)
+
+        # 过去一年按月的统计
+        last_12m_submits_count = []
+        for m in range(0, 12):
+            rst = {}
+            date = today - onemonth * m
+            count = videos.filter(Videoitems.spider_time.between(date-onemonth, date)).count()
+            rst['date'] = date.strftime('%Y-%m-%d')
+            rst['count'] = count
+            last_12m_submits_count.append(rst)
+
+        rsts["last_30d_submits_count"] = last_30d_submits_count
+        rsts['last_10w_submits_count'] = last_10w_submits_count
+        rsts['last_12m_submits_count'] = last_12m_submits_count
+        response["rst"] = rsts
+        response["code"] = 200
+        return jsonify(response)
+
+
 # api.add_resource(ProjectCtrl, "/api/projects")
 # api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 # api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
@@ -1333,7 +1418,8 @@ api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
 api.add_resource(SpiderResult, "/api/spider_result/total/by_job")             # 采集结果统计---各个任务的统计
-api.add_resource(SpiderResult1, "/api/spider_result/total/by_web")             # 采集结果统计---各个网站的统计
+api.add_resource(SpiderResult1, "/api/spider_result/total/by_web")            # 采集结果统计---各个网站的统计
+api.add_resource(SpiderResult2, "/api/spider_result/total/new_increase")      # 采集结果统计---新增结果统计
 api.add_resource(WebMonitorCtrl, "/api/web_monitor/<page>")  # 网站监控列表
 api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>/<page>")  # 网站监控日志
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
