@@ -1178,6 +1178,148 @@ class WebMonitorDetailCtrl(flask_restful.Resource):
         return jsonify(rsts)
 
 
+class SpiderResult(flask_restful.Resource):
+    @auth.login_required
+    @swagger.operation(
+        summary='采集结果统计----各任务采集统计',
+        parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string',
+        },
+            {
+            "name": "start_date",
+            "description": "各任务采集结果统计的开始时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        },
+            {
+            "name": "end_date",
+            "description": "各任务采集结果统计的结束时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        },
+        ]
+    )
+    def get(self):
+        videos = Videoitems.query
+        response = {}
+        rst = {}
+        today = datetime.date.today()
+        oneday = datetime.timedelta(days=1)
+        oneweek = datetime.timedelta(weeks=1)
+        onemonth = datetime.timedelta(weeks=4)
+
+        yesterday = today - oneday
+        lask_week = today - oneweek
+        lask_month = today - onemonth
+
+        total_num = videos.count()
+        videos_increase_by_day = videos.filter(Videoitems.spider_time == yesterday).count()
+        videos_increase_by_week = videos.filter(Videoitems.spider_time.between(lask_week, today)).count()
+        videos_increase_by_month = videos.filter(Videoitems.spider_time.between(lask_month, today)).count()
+
+        # 个任务采集结果统计
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        if start_date:
+            videos = videos.filter(Videoitems.spider_time >= start_date)
+        if end_date:
+            videos = videos.filter(Videoitems.spider_time <= end_date)
+        job_instances = JobInstance.query.all()
+        videos_num_by_job = []
+        for job_instance in job_instances:
+            job_result = {}
+            job_name = job_instance.job_name
+            videos_num = videos.filter_by(task_id=job_instance.id).count()
+            job_result['job_name'] = job_name
+            job_result['videos_num'] = videos_num
+            videos_num_by_job.append(job_result)
+
+        rst['video_total_num'] = total_num
+        rst['videos_increase_by_day'] = videos_increase_by_day
+        rst['videos_increase_by_week'] = videos_increase_by_week
+        rst['videos_increase_by_month'] = videos_increase_by_month
+        response['head_result'] = rst
+        response['videos_num_by_job'] = videos_num_by_job
+        response['code'] = 200
+        return jsonify(response)
+
+
+class SpiderResult1(flask_restful.Resource):
+    @auth.login_required
+    @swagger.operation(
+        summary='采集结果统计----各网站采集统计',
+        parameters=[{
+            "name": "username_or_token",
+            "description": "token",
+            "required": True,
+            "paramType": "header",
+            "dataType": 'string'
+        }, {
+            "name": "start_date",
+            "description": "各网站采集结果统计的开始时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        }, {
+            "name": "end_date",
+            "description": "各网站采集结果统计的结束时间",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string',
+        }]
+    )
+    def get(self):
+        videos = Videoitems.query
+        response = {}
+
+        # 个网站采集结果统计
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        if start_date:
+            videos = videos.filter(Videoitems.spider_time >= start_date)
+        if end_date:
+            videos = videos.filter(Videoitems.spider_time <= end_date)
+        projects = Project.query.all()
+        videos_num_by_web = []
+        for project in projects:
+            web_result = {}
+            web_name = project.project_name
+            job_instances = JobInstance.query.filter_by(project_id=project.id)
+            videos_num = 0
+            for job_instance in job_instances:
+                videos_num1 = videos.filter_by(task_id=job_instance.id).count()
+                videos_num += videos_num1
+
+            # 按照关键词采集视频的数量
+            job_instances1 = job_instances.filter_by(spider_type='关键词采集').all()
+            videos_num_by_keywords = 0
+            for job_instance in job_instances1:
+                videos_num1 = videos.filter_by(task_id=job_instance.id).count()
+                videos_num_by_keywords += videos_num1
+
+            # 按照板块采集视频的数量
+            job_instances2 = job_instances.filter_by(spider_type='板块采集').all()
+            videos_num_by_plate = 0
+            for job_instance in job_instances2:
+                videos_num1 = videos.filter_by(task_id=job_instance.id).count()
+                videos_num_by_plate += videos_num1
+            web_result['videos_num'] = videos_num
+            web_result['web_name'] = web_name
+            web_result['videos_num_by_keywords'] = videos_num_by_keywords
+            web_result['videos_num_by_plate'] = videos_num_by_plate
+            videos_num_by_web.append(web_result)
+
+        response['videos_num_by_web'] = videos_num_by_web
+        response['code'] = 200
+        return jsonify(response)
+
+
 # api.add_resource(ProjectCtrl, "/api/projects")
 # api.add_resource(SpiderCtrl, "/api/projects/<project_id>/spiders")
 # api.add_resource(SpiderDetailCtrl, "/api/projects/<project_id>/spiders/<spider_id>")
@@ -1190,7 +1332,8 @@ api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
-# api.add_resource(SpiderResult)
+api.add_resource(SpiderResult, "/api/spider_result/total/by_job")             # 采集结果统计---各个任务的统计
+api.add_resource(SpiderResult1, "/api/spider_result/total/by_web")             # 采集结果统计---各个网站的统计
 api.add_resource(WebMonitorCtrl, "/api/web_monitor/<page>")  # 网站监控列表
 api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>/<page>")  # 网站监控日志
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
