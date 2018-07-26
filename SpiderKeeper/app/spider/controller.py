@@ -256,37 +256,37 @@ class VideosCtrl(flask_restful.Resource):
             "paramType": "path",
             "dataType": 'int'
         },
-        {
-            "name": "start_date",
-            "description": "开始时间",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        }, {
-            "name": "end_date",
-            "description": "结束时间",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        },  {
-            "name": "title",
-            "description": "视频名称，实为关键字查询",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        }, {
-            "name": "site_name",
-            "description": "视频来源",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        }, {
-            "name": "job_id",
-            "description": "任务名称(任务id)",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'int'
-        }]
+            {
+                "name": "start_date",
+                "description": "开始时间",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            }, {
+                "name": "end_date",
+                "description": "结束时间",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            }, {
+                "name": "title",
+                "description": "视频名称，实为关键字查询",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            }, {
+                "name": "site_name",
+                "description": "视频来源",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            }, {
+                "name": "job_id",
+                "description": "任务名称(任务id)",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'int'
+            }]
     )
     def get(self, page):
         start_date = request.args.get('start_date')  # 开始时间
@@ -966,7 +966,7 @@ class JobExecutionCtrl(flask_restful.Resource):
             "required": False,
             "paramType": "query",
             "dataType": 'int'
-        },  {
+        }, {
             "name": "running_status",
             "description": "执行情况:等待执行为0，已执行为2,停止执行为3,执行错误为9",
             "required": False,
@@ -975,18 +975,18 @@ class JobExecutionCtrl(flask_restful.Resource):
         }]
     )
     def get(self, page):
-        start_date = request.args.get('start_date')      # 开始时间
-        end_date = request.args.get('end_date')          # 结束时间
-        job_id = request.args.get('job_id')          # 任务id
+        start_date = request.args.get('start_date')  # 开始时间
+        end_date = request.args.get('end_date')  # 结束时间
+        job_id = request.args.get('job_id')  # 任务id
         # job_status = request.args.get('job_status')      # 任务状态
-        running_status = request.args.get('running_status')    # 执行情况
+        running_status = request.args.get('running_status')  # 执行情况
         job_excutions = JobExecution.query.order_by(db.desc(JobExecution.id))
         if start_date:
             job_excutions = job_excutions.filter(JobExecution.date_created >= start_date)
         if end_date:
             job_excutions = job_excutions.filter(JobExecution.date_created <= end_date)
         if job_id:
-            job_excutions = job_excutions.filter_by(job_instance_id=job_id)     # 任务id
+            job_excutions = job_excutions.filter_by(job_instance_id=job_id)  # 任务id
         # if job_status:
         #     job_excutions = job_excutions.filter_by(job_status=job_status)
         if running_status:
@@ -1191,19 +1191,19 @@ class SpiderResult(flask_restful.Resource):
             "dataType": 'string',
         },
             {
-            "name": "start_date",
-            "description": "各任务采集结果统计的开始时间",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        },
+                "name": "start_date",
+                "description": "各任务采集结果统计的开始时间",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            },
             {
-            "name": "end_date",
-            "description": "各任务采集结果统计的结束时间",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        },
+                "name": "end_date",
+                "description": "各任务采集结果统计的结束时间",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            },
         ]
     )
     def get(self):
@@ -1333,74 +1333,188 @@ class SpiderResult2(flask_restful.Resource):
             "dataType": 'string',
         },
             {
-            "name": "start_date",
-            "description": "各任务采集结果统计的开始时间",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        },
+                "name": "start_date",
+                "description": "各任务采集结果统计的开始时间",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            },
             {
-            "name": "end_date",
-            "description": "各任务采集结果统计的结束时间",
-            "required": False,
-            "paramType": "query",
-            "dataType": 'string'
-        },
+                "name": "end_date",
+                "description": "各任务采集结果统计的结束时间",
+                "required": False,
+                "paramType": "query",
+                "dataType": 'string'
+            },
         ]
     )
     def get(self):
         videos = Videoitems.query
 
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        if start_date:
-            videos = videos.filter(Videoitems.spider_time >= start_date)
-        if end_date:
-            videos = videos.filter(Videoitems.spider_time <= end_date)
-        # days = start_date - end_date
-        # weeks = days// 7
-        # months = days // 30
-        response = {}
-        rsts = {}
-        today = datetime.date.today()
+        first_date = videos.order_by(db.asc(Videoitems.spider_time)).first().spider_time
+        first_date = datetime.datetime.strptime(first_date, '%Y-%m-%d')
+        today = datetime.datetime.today()
+
         oneday = datetime.timedelta(days=1)
         oneweek = datetime.timedelta(weeks=1)
         onemonth = datetime.timedelta(weeks=4)
 
-        # 过去一个月按天统计增量
-        last_30d_submits_count = []
-        for d in range(0, 30):
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        # 默认取一年的数据
+        if start_date:
+            videos = videos.filter(Videoitems.spider_time >= start_date)
+            start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+        else:
+            start_date = first_date
+        if end_date:
+            videos = videos.filter(Videoitems.spider_time <= end_date)
+            end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+        else:
+            end_date = today
+        days = (end_date - start_date).days + 1
+        weeks = int(math.ceil(days // 7))
+        months = int(math.ceil(days // 30))
+        if 0 <= months <= 3:
+            months = 3
+
+        response = {}
+        rsts = {}
+
+        """
+        采集结果总量新增情况
+        """
+        # 按天统计增量
+        videos_increase_by_day = []
+        for d in range(0, days):
             rst = {}
-            date = today - oneday*d
-            count = videos.filter(Videoitems.spider_time.between(date-oneday, date)).count()
+            date = end_date - oneday * d
+            count = videos.filter(Videoitems.spider_time.between(date - oneday, date)).count()
             rst["date"] = date.strftime('%Y-%m-%d')
             rst["count"] = str(count)
-            last_30d_submits_count.append(rst)
+            videos_increase_by_day.append(rst)
 
-        # 过去十周按周的统计
-        last_10w_submits_count = []
-        for w in range(0, 10):
+        # 按周的统计
+        videos_increase_by_week = []
+        for w in range(0, weeks):
             rst = {}
-            date = today - oneweek * w
-            count = videos.filter(Videoitems.spider_time.between(date-oneweek, date)).count()
+            date = end_date - oneweek * w
+            count = videos.filter(Videoitems.spider_time.between(date - oneweek, date)).count()
             rst['date'] = date.strftime('%Y-%m-%d')
             rst['count'] = count
-            last_10w_submits_count.append(rst)
+            videos_increase_by_week.append(rst)
 
-        # 过去一年按月的统计
-        last_12m_submits_count = []
-        for m in range(0, 12):
+        # 按月的统计
+        videos_increase_by_month = []
+        for m in range(0, months):
             rst = {}
-            date = today - onemonth * m
-            count = videos.filter(Videoitems.spider_time.between(date-onemonth, date)).count()
+            date = end_date - onemonth * m
+            count = videos.filter(Videoitems.spider_time.between(date - onemonth, date)).count()
             rst['date'] = date.strftime('%Y-%m-%d')
             rst['count'] = count
-            last_12m_submits_count.append(rst)
+            videos_increase_by_month.append(rst)
+        videos_increase = []
+        rsts["videos_increase_by_day"] = videos_increase_by_day
+        rsts['videos_increase_by_week'] = videos_increase_by_week
+        rsts['videos_increase_by_month'] = videos_increase_by_month
+        videos_increase.append(rsts)
+        """
+        各任务采集结果新增情况
+        """
+        job_instances = JobInstance.query.all()
+        videos_increase_by_job = []
+        for job_instance in job_instances:
+            job_result = {}
+            job_name = job_instance.job_name
+            videos1 = videos.filter_by(task_id=job_instance.id)
+            # 按日统计增量
+            videos_increase_by_job_day = []
+            for d in range(0, days):
+                rst = {}
+                date = end_date - oneday * d
+                count = videos1.filter(Videoitems.spider_time.between(date - oneday, date)).count()
+                rst["date"] = date.strftime('%Y-%m-%d')
+                rst["count"] = str(count)
+                videos_increase_by_job_day.append(rst)
+            # 按周的统计
+            videos_increase_by_job_week = []
+            for w in range(0, weeks):
+                rst = {}
+                date = end_date - oneweek * w
+                count = videos1.filter(Videoitems.spider_time.between(date - oneweek, date)).count()
+                rst['date'] = date.strftime('%Y-%m-%d')
+                rst['count'] = count
+                videos_increase_by_job_week.append(rst)
 
-        rsts["last_30d_submits_count"] = last_30d_submits_count
-        rsts['last_10w_submits_count'] = last_10w_submits_count
-        rsts['last_12m_submits_count'] = last_12m_submits_count
-        response["rst"] = rsts
+            # 按月的统计
+            videos_increase_by_job_month = []
+            for m in range(0, months):
+                rst = {}
+                date = end_date - onemonth * m
+                count = videos1.filter(Videoitems.spider_time.between(date - onemonth, date)).count()
+                rst['date'] = date.strftime('%Y-%m-%d')
+                rst['count'] = count
+                videos_increase_by_job_month.append(rst)
+
+            job_result['job_name'] = job_name
+            job_result['videos_increase_by_job_day'] = videos_increase_by_job_day
+            job_result['videos_increase_by_job_week'] = videos_increase_by_job_week
+            job_result['videos_increase_by_job_month'] = videos_increase_by_job_month
+            videos_increase_by_job.append(job_result)
+
+        """
+        各网站采集结果新增情况
+        """
+        projects = Project.query.all()
+        videos_increase_by_web = []
+        for project in projects:
+            web_result = {}
+            web_name = project.project_name
+            job_instances = JobInstance.query.filter_by(project_id=project.id).all()  # 面向单个网站所有的任务
+            task_ids = []
+            for job_instance in job_instances:   # 单个任务下分时段统计
+                task_ids.append(job_instance.id)
+            videos2 = videos.filter(Videoitems.task_id.in_(task_ids))
+            # 按日统计增量
+            videos_increase_by_web_day = []
+            for d in range(0, days):
+                    rst = {}
+                    date = end_date - oneday * d
+                    count = videos2.filter(Videoitems.spider_time.between(date - oneday, date)).count()
+                    rst["date"] = date.strftime('%Y-%m-%d')
+                    rst["count"] = count
+                    print(count)
+                    videos_increase_by_web_day.append(rst)
+
+            # 按周的统计
+            videos_increase_by_web_week = []
+            for w in range(0, weeks):
+                    rst = {}
+                    date = end_date - oneweek * w
+                    count = videos2.filter(Videoitems.spider_time.between(date - oneweek, date)).count()
+                    rst['date'] = date.strftime('%Y-%m-%d')
+                    rst['count'] = count
+                    videos_increase_by_web_week.append(rst)
+
+            # 按月的统计
+            videos_increase_by_web_month = []
+            for m in range(0, months):
+                    rst = {}
+                    date = end_date - onemonth * m
+                    count = videos2.filter(Videoitems.spider_time.between(date - onemonth, date)).count()
+                    rst['date'] = date.strftime('%Y-%m-%d')
+                    rst['count'] = count
+                    videos_increase_by_web_month.append(rst)
+            web_result['web_name'] = web_name
+            web_result['videos_increase_by_web_day'] = videos_increase_by_web_day
+            web_result['videos_increase_by_web_week'] = videos_increase_by_web_week
+            web_result['videos_increase_by_web_month'] = videos_increase_by_web_month
+            videos_increase_by_web.append(web_result)
+
+        response["videos_increase"] = videos_increase
+        response["videos_increase_by_job"] = videos_increase_by_job
+        response["videos_increase_by_web"] = videos_increase_by_web
         response["code"] = 200
         return jsonify(response)
 
@@ -1417,9 +1531,9 @@ api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
 api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
-api.add_resource(SpiderResult, "/api/spider_result/total/by_job")             # 采集结果统计---各个任务的统计
-api.add_resource(SpiderResult1, "/api/spider_result/total/by_web")            # 采集结果统计---各个网站的统计
-api.add_resource(SpiderResult2, "/api/spider_result/total/new_increase")      # 采集结果统计---新增结果统计
+api.add_resource(SpiderResult, "/api/spider_result/total/by_job")  # 采集结果统计---各个任务的统计
+api.add_resource(SpiderResult1, "/api/spider_result/total/by_web")  # 采集结果统计---各个网站的统计
+api.add_resource(SpiderResult2, "/api/spider_result/total/new_increase")  # 采集结果统计---新增结果统计
 api.add_resource(WebMonitorCtrl, "/api/web_monitor/<page>")  # 网站监控列表
 api.add_resource(WebMonitorDetailCtrl, "/api/web_monitor/<web_id>/<page>")  # 网站监控日志
 # api.add_resource(JobExecutionCtrl, "/api/projects/<project_id>/jobexecs")
