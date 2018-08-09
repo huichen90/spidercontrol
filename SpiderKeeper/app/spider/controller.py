@@ -651,13 +651,14 @@ class JobCtrl(flask_restful.Resource):
                         job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                         job_instance.cron_month = post_data.get('cron_month') or '*'
                         db.session.add(job_instance)
-                        # db.session.commit()
+                        print(job_instance)
+                        db.session.commit()
                         if job_instance.pri == '紧急':
                             agent.start_spider(job_instance)
                         return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
                     else:
                         db.session.add(job_instance)
-                        # db.session.commit()
+                        db.session.commit()
                         if job_instance.pri == '紧急':
                             agent.start_spider(job_instance)
                         # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
@@ -681,13 +682,13 @@ class JobCtrl(flask_restful.Resource):
                             new_job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                             new_job_instance.cron_month = post_data.get('cron_month') or '*'
                             db.session.add(new_job_instance)
-                            # db.session.commit()
+                            db.session.commit()
                             if job_instance.pri == '紧急':
                                 agent.start_spider(new_job_instance)
                             # return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
                         else:
                             db.session.add(new_job_instance)
-                            # db.session.commit()
+                            db.session.commit()
                             if job_instance.pri == '紧急':
                                 agent.start_spider(new_job_instance)
                             # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
