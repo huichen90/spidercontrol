@@ -68,7 +68,7 @@ auth = HTTPBasicAuth()
 
 @auth.error_handler
 def unauthorized():
-    return jsonify({'error': 'Unauthorized access'})
+    return make_response(jsonify({'error': 'Unauthorized access'}), 403)
 
 
 class UserLogin(flask_restful.Resource):
@@ -793,13 +793,15 @@ class JobDetailCtrl(flask_restful.Resource):
                 "required": False,
                 "paramType": "form",
                 "dataType": 'string'
-            }, {
-                "name": "run_time",
-                "description": "任务运行时间（长期/设定区间）",
-                "required": False,
-                "paramType": "form",
-                "dataType": 'string'
-            }, {
+            },
+            # {
+            #     "name": "run_time",
+            #     "description": "任务运行时间（长期/设定区间）",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # },
+            {
                 "name": "start_date",
                 "description": "任务开始时间",
                 "required": False,
@@ -817,31 +819,33 @@ class JobDetailCtrl(flask_restful.Resource):
                 "required": False,
                 "paramType": "form",
                 "dataType": 'float'
-            }, {
-                "name": "run_type",
-                "description": "持续运行/运行一次",
-                "required": False,
-                "paramType": "form",
-                "dataType": 'string'
-            }, {
-                "name": "upload_time_type",
-                "description": "设置视频上传时间的方式(任务运行周期内最新/设定区间)",
-                "required": False,
-                "paramType": "form",
-                "dataType": 'string'
-            }, {
-                "name": "upload_time_start_date",
-                "description": "最早的上传时间",
-                "required": False,
-                "paramType": "form",
-                "dataType": 'string'
-            }, {
-                "name": "upload_time_end_date",
-                "description": "最晚的上传时间",
-                "required": False,
-                "paramType": "form",
-                "dataType": 'string'
-            }, {
+            },
+            # {
+            #     "name": "run_type",
+            #     "description": "持续运行/运行一次",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # }, {
+            #     "name": "upload_time_type",
+            #     "description": "设置视频上传时间的方式(任务运行周期内最新/设定区间)",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # }, {
+            #     "name": "upload_time_start_date",
+            #     "description": "最早的上传时间",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # }, {
+            #     "name": "upload_time_end_date",
+            #     "description": "最晚的上传时间",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # },
+            {
                 "name": "video_time_short",
                 "description": "爬去视频的最短时间",
                 "required": False,
@@ -853,80 +857,86 @@ class JobDetailCtrl(flask_restful.Resource):
                 "required": False,
                 "paramType": "form",
                 "dataType": 'int'
-            }, {
-                "name": "spider_arguments",
-                "description": "spider_arguments,  split by ','",
-                "required": False,
-                "paramType": "form",
-                "dataType": 'string'
-            }, {
-                "name": "daemon",
-                "description": "服务器（auto或者服务器ip）",
-                "required": False,
-                "paramType": "form",
-                "dataType": 'string'
-            }, {
-                "name": "pri",
-                "description": "优先级，紧急或者常规",
-                "required": True,
-                "paramType": "form",
-                "dataType": 'string'
-            }
+            },
+            # {
+            #     "name": "spider_arguments",
+            #     "description": "spider_arguments,  split by ','",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # }, {
+            #     "name": "daemon",
+            #     "description": "服务器（auto或者服务器ip）",
+            #     "required": False,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # }, {
+            #     "name": "pri",
+            #     "description": "优先级，紧急或者常规",
+            #     "required": True,
+            #     "paramType": "form",
+            #     "dataType": 'string'
+            # }
         ])
     def put(self, job_id):
         post_data = request.form
         if post_data:
             job_instance = JobInstance.query.filter_by(id=job_id).first()
+            print('daffafasdfasd')
             if not job_instance:
                 abort(404)
+            print('................................')
             try:
                 job_instance.job_name = post_data.get('job_name') or job_instance.job_name
-                job_instance.spider_name = post_data['spider_name'] or job_instance.spider_name
-                job_instance.project_id = post_data['project_id'] or job_instance.project_id
+                print('&&&&&&&&&&&&&&&&&&&&&&&')
+                # job_instance.spider_name = post_data['spider_name'] or job_instance.spider_name
+                print('ladfdgfgs')
+                # job_instance.project_id = post_data['project_id'] or job_instance.project_id
                 job_instance.keywords = post_data.get('keywords') or job_instance.keywords
-                job_instance.spider_type = post_data.get('spider_type') or job_instance.spider_type
-                job_instance.run_time = post_data.get('run_time') or job_instance.run_time  # 运行时间
-                if job_instance.run_time != '长期':
-                    job_instance.start_date = post_data.get('start_date') or job_instance.start_date
-                    job_instance.end_date = post_data.get('end_date') or job_instance.end_date
+                # job_instance.spider_type = post_data.get('spider_type') or job_instance.spider_type
+                # job_instance.run_time = post_data.get('run_time') or job_instance.run_time  # 运行时间
+                # if job_instance.run_time != '长期':
+                job_instance.start_date = post_data.get('start_date') or job_instance.start_date
+                job_instance.end_date = post_data.get('end_date') or job_instance.end_date
                 job_instance.spider_freq = post_data.get('spider_freq') or job_instance.spider_freq
-                job_instance.run_type = post_data.get('run_type') or job_instance.run_type
-                job_instance.upload_time_type = post_data.get('upload_time_type') or job_instance.upload_time_type
-                job_instance.upload_time_start_date = post_data.get('upload_time_start_date') \
-                                                      or job_instance.upload_time_start_date
-                job_instance.upload_time_end_date = post_data.get('upload_time_end_date') \
-                                                    or job_instance.upload_time_end_date
+                # job_instance.run_type = post_data.get('run_type') or job_instance.run_type
+                # job_instance.upload_time_type = post_data.get('upload_time_type') or job_instance.upload_time_type
+                # job_instance.upload_time_start_date = post_data.get('upload_time_start_date') \
+                #                                       or job_instance.upload_time_start_date
+                # job_instance.upload_time_end_date = post_data.get('upload_time_end_date') \
+                #                                     or job_instance.upload_time_end_date
                 job_instance.video_time_short = post_data.get('video_time_short') or job_instance.video_time_short
                 job_instance.video_time_long = post_data.get('video_time_long') or job_instance.video_time_long
-                if post_data.get('daemon') != 'auto':
-                    spider_args = []
-                    if post_data.get('spider_arguments'):
-                        spider_args = post_data.get('spider_arguments').split(",")
-                    spider_args.append("daemon={}".format(post_data.get('daemon')))
-                    job_instance.spider_arguments = ','.join(spider_args)
+                # if post_data.get('daemon') != 'auto':
+                #     spider_args = []
+                #     if post_data.get('spider_arguments'):
+                #         spider_args = post_data.get('spider_arguments').split(",")
+                #     spider_args.append("daemon={}".format(post_data.get('daemon')))
+                #     job_instance.spider_arguments = ','.join(spider_args)
                 # job_instance.spider_arguments = post_data.get('spider_arguments')
-                job_instance.priority = post_data.get('priority', 0)
-                job_instance.pri = post_data.get('pri')
-                if job_instance.run_type == "持续运行":
-                    # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
-                    job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
-                    job_instance.cron_hour = post_data.get('cron_hour') or '*'
-                    # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
-                    job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
-                    job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
-                    job_instance.cron_month = post_data.get('cron_month') or '*'
-                    job_instance.date_modified = datetime.datetime.now()
-                    db.session.commit()
-                    if job_instance.pri == '紧急':
-                        agent.start_spider(job_instance)
-                    return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
-                else:
-                    job_instance.date_modified = datetime.datetime.now()
-                    db.session.commit()
-                    if job_instance.pri == '紧急':
-                        agent.start_spider(job_instance)
-                    # agent.start_spider(job_instance)
-                    return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
+                # job_instance.priority = post_data.get('priority', 0)
+                # job_instance.pri = post_data.get('pri')
+                # if job_instance.run_type == "持续运行":
+                # job_instance.cron_minutes = post_data.get('cron_minutes') or '0'
+                # job_instance.cron_minutes = '*/' + str(post_data.get('spider_freq'))
+                #  job_instance.cron_hour = post_data.get('cron_hour') or '*'
+                # job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
+                job_instance.cron_day_of_month = '*/' + str(
+                    post_data.get('spider_freq')) or job_instance.cron_day_of_month
+                # job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
+                # job_instance.cron_month = post_data.get('cron_month') or '*'
+                job_instance.date_modified = datetime.datetime.now()
+                db.session.commit()
+                if job_instance.pri == '紧急':
+                    agent.start_spider(job_instance)
+                return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
+                # else:
+                #     job_instance.date_modified = datetime.datetime.now()
+                #     db.session.commit()
+                #     if job_instance.pri == '紧急':
+                #         agent.start_spider(job_instance)
+                #     # agent.start_spider(job_instance)
+                #     return jsonify({'rst': '修改成功', 'code': 200, 'user_name': g.user.user_name})
             except Exception as e:
                 return jsonify({'rst': '修改失败 %s' % e, 'code': 404, 'user_name': g.user.user_name})
         else:
@@ -1474,39 +1484,39 @@ class SpiderResult2(flask_restful.Resource):
             web_name = project.project_name
             job_instances = JobInstance.query.filter_by(project_id=project.id).all()  # 面向单个网站所有的任务
             task_ids = []
-            for job_instance in job_instances:   # 单个任务下分时段统计
+            for job_instance in job_instances:  # 单个任务下分时段统计
                 task_ids.append(job_instance.id)
             videos2 = videos.filter(Videoitems.task_id.in_(task_ids))
             # 按日统计增量
             videos_increase_by_web_day = []
             for d in range(0, days):
-                    rst = {}
-                    date = end_date - oneday * d
-                    count = videos2.filter(Videoitems.spider_time.between(date - oneday, date)).count()
-                    rst["date"] = date.strftime('%Y-%m-%d')
-                    rst["count"] = count
-                    print(count)
-                    videos_increase_by_web_day.append(rst)
+                rst = {}
+                date = end_date - oneday * d
+                count = videos2.filter(Videoitems.spider_time.between(date - oneday, date)).count()
+                rst["date"] = date.strftime('%Y-%m-%d')
+                rst["count"] = count
+                print(count)
+                videos_increase_by_web_day.append(rst)
 
             # 按周的统计
             videos_increase_by_web_week = []
             for w in range(0, weeks):
-                    rst = {}
-                    date = end_date - oneweek * w
-                    count = videos2.filter(Videoitems.spider_time.between(date - oneweek, date)).count()
-                    rst['date'] = date.strftime('%Y-%m-%d')
-                    rst['count'] = count
-                    videos_increase_by_web_week.append(rst)
+                rst = {}
+                date = end_date - oneweek * w
+                count = videos2.filter(Videoitems.spider_time.between(date - oneweek, date)).count()
+                rst['date'] = date.strftime('%Y-%m-%d')
+                rst['count'] = count
+                videos_increase_by_web_week.append(rst)
 
             # 按月的统计
             videos_increase_by_web_month = []
             for m in range(0, months):
-                    rst = {}
-                    date = end_date - onemonth * m
-                    count = videos2.filter(Videoitems.spider_time.between(date - onemonth, date)).count()
-                    rst['date'] = date.strftime('%Y-%m-%d')
-                    rst['count'] = count
-                    videos_increase_by_web_month.append(rst)
+                rst = {}
+                date = end_date - onemonth * m
+                count = videos2.filter(Videoitems.spider_time.between(date - onemonth, date)).count()
+                rst['date'] = date.strftime('%Y-%m-%d')
+                rst['count'] = count
+                videos_increase_by_web_month.append(rst)
             web_result['web_name'] = web_name
             web_result['videos_increase_by_web_day'] = videos_increase_by_web_day
             web_result['videos_increase_by_web_week'] = videos_increase_by_web_week
@@ -1528,7 +1538,7 @@ api.add_resource(UserLogin, "/api/user/login")  # 用户登录
 api.add_resource(JobCtrl, "/api/project/add_jobs")  # 新增任务
 api.add_resource(JobSCtrl, "/api/joblist")  # 任务列表
 api.add_resource(JobDetail, "/api/joblist/<job_id>")  # 任务详情
-# api.add_resource(JobDetailCtrl, "/api/project/update_jobs/<job_id>")  # 任务更新
+api.add_resource(JobDetailCtrl, "/api/project/update_jobs/<job_id>")  # 任务更新
 api.add_resource(VideosCtrl, "/api/joblist/videos/<page>")  # 视频列表
 api.add_resource(VideoDetail, "/api/joblist/video_detail/<video_id>")  # 视频详情
 api.add_resource(JobExecutionCtrl, "/api/job_executions/<page>")  # 任务执行列表
