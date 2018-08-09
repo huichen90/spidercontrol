@@ -68,7 +68,7 @@ auth = HTTPBasicAuth()
 
 @auth.error_handler
 def unauthorized():
-    return make_response(jsonify({'error': 'Unauthorized access'}), 403)
+    return jsonify({'error': 'Unauthorized access'})
 
 
 class UserLogin(flask_restful.Resource):
@@ -1362,7 +1362,7 @@ class SpiderResult2(flask_restful.Resource):
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
 
-        # 默认取一年的数据
+        # 默认取所有的数据
         if start_date:
             videos = videos.filter(Videoitems.spider_time >= start_date)
             start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
