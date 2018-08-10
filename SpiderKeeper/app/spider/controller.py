@@ -1004,9 +1004,10 @@ class JobExecutionCtrl(flask_restful.Resource):
             job_excutions = job_excutions.filter_by(running_status=running_status)
 
         job_name_list = []
-        for job_excution1 in JobExecution.query.all():
-            job_id = job_excution1.job_instance_id
-            job_name_list.append({'job_id': job_id,
+        for job_excution1 in JobInstance.query.all():
+            job_id = job_excution1.id
+            if job_id not in job_name_list:
+                job_name_list.append({'job_id': job_id,
                                   'job_name': JobInstance.query.filter_by(id=job_id).first().job_name})
         page = int(page)
         pagination = job_excutions.paginate(page, per_page=10, error_out=False)
@@ -1029,7 +1030,7 @@ class JobExecutionCtrl(flask_restful.Resource):
                 'date': job_excution.start_time.strftime('%Y-%m-%d'),
                 'job_status': job_status,
                 'enabled': job_instance.enabled,
-                'running_status': job_instance.running,
+                'running_status': job_excution.running_status,
                 'video_num': Videoitems.query.filter_by(spider_time=job_excution.start_time.strftime('%Y-%m-%d'),
                                                         task_id=job_excution.job_instance_id).count()
             }
