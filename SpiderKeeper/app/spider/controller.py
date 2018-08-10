@@ -1098,16 +1098,25 @@ class WebMonitorCtrl(flask_restful.Resource):
             "required": False,
             "paramType": "query",
             "dataType": 'string'
+        }, {
+            "name": "url",
+            "description": "网站连接",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
         }, ]
     )
     def get(self, page):
         web_name = request.args.get('web_name')
         status = request.args.get('status')
+        url = request.args.get('url')
         target_web_monitors = WebMonitor.query
         if web_name:
             target_web_monitors = target_web_monitors.filter_by(web_name=web_name)
         if status:
             target_web_monitors = target_web_monitors.filter_by(status=status)
+        if url:
+            target_web_monitors = target_web_monitors.filter(WebMonitor.web_url.contains(url))  # 视频名称
         target_web_list = []
         for target_web in WebMonitor.query.all():
             target_web_list.append({'web_id': target_web.id, 'web_name': target_web.web_name})
