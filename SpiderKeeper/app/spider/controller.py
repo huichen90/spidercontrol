@@ -322,13 +322,15 @@ class VideosCtrl(flask_restful.Resource):
         response = {}
         rsts = []
         for video in videos:
+            job_instance = JobInstance.query.filter_by(id=video.task_id).first()
             rst = {
                 'video_id': video.id,
                 'task_id': video.task_id,
+                'job_id': job_instance.id,
                 'title': video.title,
                 'spider_time': video.spider_time,
                 'site_name': video.site_name,
-                'job_name': JobInstance.query.filter_by(id=video.task_id).first().job_name,
+                'job_name': job_instance.job_name,
 
             }
             rsts.append(rst)
@@ -339,6 +341,20 @@ class VideosCtrl(flask_restful.Resource):
         response['job_name_list'] = job_name_list
         response['user_name'] = g.user.user_name
         return jsonify({'rst': response, 'code': 200, })
+
+
+def num2time(num):
+    m = num % 60
+    s = num // 60 % 60
+    h = num // 3600
+
+    if m < 10:
+        m = '0' + str(m)
+    if s < 10:
+        s = '0' + str(s)
+    if h < 10:
+        h = '0' + str(h)
+    return str(h) + ':' + str(s) + ':' + str(m)
 
 
 class VideoDetail(flask_restful.Resource):
@@ -370,6 +386,7 @@ class VideoDetail(flask_restful.Resource):
             'url': video.url,
             'upload_time': video.upload_time,
             'info': video.info,
+            'video_time': num2time(video.video_time),
         }
 
         return jsonify({'rst': rst, 'code': 200, 'user_name': g.user.user_name})
