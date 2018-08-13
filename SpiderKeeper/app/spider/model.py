@@ -125,14 +125,14 @@ class JobInstance(Base):
     spider_name = db.Column(db.String(100), nullable=False, index=True)   # 采集形式（关键词采集/板块采集）
     run_time = db.Column(db.String(20))   # 长期/设定区间
 
-    start_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 任务开始时间
-    end_date = db.Column(db.DateTime, default=db.func.current_timestamp())    # 任务结束时间
+    start_date = db.Column(db.Date, default=db.func.current_timestamp())  # 任务开始时间
+    end_date = db.Column(db.Date, default=db.func.current_timestamp())    # 任务结束时间
     tags = db.Column(db.Text)  # job tag(split by , )
     spider_freq = db.Column(db.Float, default=0)  # 采集频率，以天为单位，需要将其分解映射为满足cron格式需求
     run_type = db.Column(db.String(20))  # periodic/onetime
     upload_time_type = db.Column(db.String(20))  # 设置视频上传时间的方式
-    upload_time_start_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 上传时间开始
-    upload_time_end_date = db.Column(db.DateTime, default=db.func.current_timestamp())  # 上传时间结束
+    upload_time_start_date = db.Column(db.Date, default=db.func.current_timestamp())  # 上传时间开始
+    upload_time_end_date = db.Column(db.Date, default=db.func.current_timestamp())  # 上传时间结束
     video_time_short = db.Column(db.Integer)   # 视频最短时间
     video_time_long = db.Column(db.Integer)    # 视频最长时间
     spider_arguments = db.Column(db.Text)  # job execute arguments(split by , ex.: arg1=foo,arg2=bar)

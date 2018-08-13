@@ -1494,6 +1494,9 @@ class SpiderResult2(flask_restful.Resource):
                 rst['date'] = date.strftime('%Y-%m-%d')
                 rst['count'] = count
                 videos_increase_by_job_month.append(rst)
+            videos_increase_by_job_day = list(reversed(videos_increase_by_job_day))
+            videos_increase_by_job_week = list(reversed(videos_increase_by_job_week))
+            videos_increase_by_job_month = list(reversed(videos_increase_by_job_month))
 
             job_result['job_name'] = job_name
             job_result['videos_increase_by_job_day'] = videos_increase_by_job_day
@@ -1544,6 +1547,9 @@ class SpiderResult2(flask_restful.Resource):
                 rst['date'] = date.strftime('%Y-%m-%d')
                 rst['count'] = count
                 videos_increase_by_web_month.append(rst)
+            videos_increase_by_web_day = list(reversed(videos_increase_by_web_day))
+            videos_increase_by_web_week = list(reversed(videos_increase_by_web_week))
+            videos_increase_by_web_month = list(reversed(videos_increase_by_web_month))
             web_result['web_name'] = web_name
             web_result['videos_increase_by_web_day'] = videos_increase_by_web_day
             web_result['videos_increase_by_web_week'] = videos_increase_by_web_week
