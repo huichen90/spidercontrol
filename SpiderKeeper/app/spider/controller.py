@@ -1452,6 +1452,9 @@ class SpiderResult2(flask_restful.Resource):
             rst['date'] = date.strftime('%Y-%m-%d')
             rst['count'] = count
             videos_increase_by_month.append(rst)
+        videos_increase_by_day.reverse()
+        videos_increase_by_week.reverse()
+        videos_increase_by_month.reverse()
         videos_increase = []
         rsts["videos_increase_by_day"] = videos_increase_by_day
         rsts['videos_increase_by_week'] = videos_increase_by_week
