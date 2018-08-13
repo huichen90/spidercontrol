@@ -1,3 +1,4 @@
+import datetime
 import time
 
 
@@ -20,3 +21,10 @@ def ts2dts(timeStamp):
     timeArray = time.localtime(timeStamp)
     datestr = time.strftime("%Y-%m-%d", timeArray)
     return datestr
+
+
+if __name__ == '__main__':
+    ee = ts2dts(1534052846)
+    aa = datetime.datetime.utcnow()
+    print(aa)
+    print(dts2ts(aa))

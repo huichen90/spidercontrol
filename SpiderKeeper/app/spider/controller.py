@@ -664,7 +664,7 @@ class JobCtrl(flask_restful.Resource):
                         job_instance.cron_hour = hour  # 添加随机的运行时间
                         # job_instance.cron_hour = post_data.get('cron_hour') or '*'
                         job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
-                        job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                        # job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
                         job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                         job_instance.cron_month = post_data.get('cron_month') or '*'
                         db.session.add(job_instance)
@@ -695,7 +695,7 @@ class JobCtrl(flask_restful.Resource):
                             new_job_instance.cron_hour = hour  # 添加随机的运行时间
                             # job_instance.cron_hour = post_data.get('cron_hour') or '*'
                             new_job_instance.cron_day_of_month = '*/' + str(post_data.get('spider_freq'))
-                            new_job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
+                            # new_job_instance.cron_day_of_month = post_data.get('cron_day_of_month') or '*'
                             new_job_instance.cron_day_of_week = post_data.get('cron_day_of_week') or '*'
                             new_job_instance.cron_month = post_data.get('cron_month') or '*'
                             db.session.add(new_job_instance)
@@ -1651,12 +1651,17 @@ def utility_processor():
     return dict(timedelta=timedelta, readable_time=readable_time)
 
 
-@app.route("/")
-def index():
+@app.route("/hello")
+def index1():
     project = Project.query.first()
     if project:
         return redirect("/project/%s/job/dashboard" % project.id, code=302)
     return redirect("/project/manage", code=302)
+
+
+@app.route("/")
+def index():
+    return render_template('index.html')
 
 
 @app.route("/project/<project_id>")
