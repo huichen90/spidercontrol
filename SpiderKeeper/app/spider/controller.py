@@ -673,6 +673,13 @@ class JobCtrl(flask_restful.Resource):
                         spider_args = post_data.get('spider_arguments').split(",")
                     spider_args.append("daemon={}".format(post_data.get('daemon')))
                     job_instance.spider_arguments = ','.join(spider_args)
+                else:
+                    spider_args = []
+                    server = SERVERS
+                    if post_data.get('spider_arguments'):
+                        spider_args = post_data.get('spider_arguments').split(",")
+                    spider_args.append("daemon={}".format(server[random.randint(0, len(server)-1)]))
+                    job_instance.spider_arguments = ','.join(spider_args)
                 # job_instance.spider_arguments = post_data.get('spider_arguments')
                 job_instance.priority = post_data.get('priority', 0)
                 job_instance.pri = post_data.get('pri')
@@ -706,7 +713,7 @@ class JobCtrl(flask_restful.Resource):
                         db.session.commit()
                         if job_instance.pri == '紧急':
                             agent.start_spider(job_instance)
-                        # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
+                        agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
                         return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
                 else:
                     keywords_list = post_data.get('keywords').strip(',').split(',')
@@ -736,7 +743,7 @@ class JobCtrl(flask_restful.Resource):
                             db.session.commit()
                             if job_instance.pri == '紧急':
                                 agent.start_spider(new_job_instance)
-                            # agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
+                            agent.start_spider(job_instance)  # 当爬虫为单次执行时，会立刻执行
                     db.session.commit()
                     return jsonify({'rst': '添加成功', 'code': 200, 'user_name': g.user.user_name})
             except Exception as e:
