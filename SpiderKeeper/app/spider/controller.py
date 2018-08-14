@@ -792,7 +792,7 @@ class JobDetail(flask_restful.Resource):
                     'spider_type': job_instance.spider_type,
                     'target_web_id': target_web.id,
                     'target_web': target_web.project_name,
-                    'spider_content': job_instance.keywords,
+                    'spider_content': job_instance.keywords or job_instance.spider_name,
                     'run_time': run_time,
                     'spider_freq': job_instance.spider_freq,
                     'run_times': job_instance.run_type,
