@@ -4,6 +4,7 @@ import json
 import os
 import random
 import tempfile
+from functools import wraps
 
 import flask_restful
 import math
@@ -63,12 +64,27 @@ class UserRegister(flask_restful.Resource):
                 return jsonify({'rst': '注册失败，用户名已存在', 'code': 404})
 
 
-auth = HTTPBasicAuth()
+class HTTPBasicAuth1(HTTPBasicAuth):
+    def error_handler(self, f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            res = f(*args, **kwargs)
+            res = make_response(res)
+            if res.status_code == 200:
+                pass
+            if 'WWW-Authenticate' not in res.headers.keys():
+                pass
+            return res
+        self.auth_error_callback = decorated
+        return decorated
+
+
+auth = HTTPBasicAuth1()
 
 
 @auth.error_handler
 def unauthorized():
-    return make_response(jsonify({'error': 'Unauthorized access'}), 403)
+    return jsonify({'error': '请重新登录'})
 
 
 class UserLogin(flask_restful.Resource):
@@ -403,13 +419,25 @@ class JobSCtrl(flask_restful.Resource):
             "paramType": "header",
             "dataType": 'string'
         },
+        {
+            "name": "job_name",
+            "description": "任务名称查询",
+            "required": False,
+            "paramType": "query",
+            "dataType": 'string'
+        },
         ]
     )
     def get(self):
-        job_instances = JobInstance.query.order_by(db.desc(JobInstance.id)).all()
+        job_instances = JobInstance.query.order_by(db.desc(JobInstance.id))
+
+        job_name = request.args.get('job_name')
+
+        if job_name:
+            job_instances = job_instances.filter(JobInstance.job_name.contains(job_name))
+        job_instances = job_instances.all()
         job_instance_num = len(job_instances)
         job_instance_running = 0
-
         rsts = []
         for job_instance in job_instances:
             if job_instance.run_time == '长期':
@@ -428,7 +456,7 @@ class JobSCtrl(flask_restful.Resource):
             rst = {
                 'job_id': job_instance.id,
                 'job_name': job_instance.job_name,
-                'spider_type': job_instance.spider_name,
+                'spider_type': job_instance.spider_type,
                 'spider_freq': job_instance.spider_freq,
                 'run_time': run_time,
                 'run_times': job_instance.run_type,
@@ -757,11 +785,13 @@ class JobDetail(flask_restful.Resource):
                     job_status = '已暂停'
                 else:
                     job_status = '运行完成'
+                target_web = Project.query.filter_by(id=job_instance.project_id).first()
                 rst = {
                     'job_status': job_status,
                     'job_name': job_instance.job_name,
-                    'spider_type': job_instance.spider_name,
-                    'target_web': Project.query.filter_by(id=job_instance.project_id).first().project_name,
+                    'spider_type': job_instance.spider_type,
+                    'target_web_id': target_web.id,
+                    'target_web': target_web.project_name,
                     'spider_content': job_instance.keywords,
                     'run_time': run_time,
                     'spider_freq': job_instance.spider_freq,
