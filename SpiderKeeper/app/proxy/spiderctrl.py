@@ -139,7 +139,7 @@ class SpiderAgent():
                     arguments['startDate'] = dts2ts(job_instance.upload_time_start_date)
                     arguments['endDate'] = dts2ts(job_instance.upload_time_end_date)
                 else:
-                    arguments['startDate'] = int(time.time()) - 3600*24*job_instance.spider_freq
+                    arguments['startDate'] = int(time.time()) - 3600*36*job_instance.spider_freq
                     arguments['endDate'] = int(time.time())
                 arguments['task_id'] = task_id   # 将任务id加入到爬虫
                 daemon_size = len(self.spider_service_instances)

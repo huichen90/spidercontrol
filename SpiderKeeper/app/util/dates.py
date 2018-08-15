@@ -26,5 +26,10 @@ def ts2dts(timeStamp):
 if __name__ == '__main__':
     ee = ts2dts(1534052846)
     aa = datetime.datetime.utcnow()
-    print(aa)
-    print(dts2ts(aa))
+    ts = int(time.time()) - 3600 * 24 * 1
+    print(ts2dts(1534228873), ts)
+    print(ts2dts(1534003200))
+    print(ts2dts(1534315273))
+
+    # print(aa)
+    # print(dts2ts(aa))
