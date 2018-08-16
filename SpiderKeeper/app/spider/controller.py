@@ -665,8 +665,8 @@ class JobCtrl(flask_restful.Resource):
                 if job_instance.upload_time_type == '设定区间':
                     job_instance.upload_time_start_date = post_data.get('upload_time_start_date')
                     job_instance.upload_time_end_date = post_data.get('upload_time_end_date')
-                job_instance.video_time_short = post_data.get('video_time_short')
-                job_instance.video_time_long = post_data.get('video_time_long')
+                job_instance.video_time_short = int(post_data.get('video_time_short')) * 60
+                job_instance.video_time_long = int(post_data.get('video_time_long')) *60
                 if post_data.get('daemon') != 'auto':
                     spider_args = []
                     if post_data.get('spider_arguments'):
@@ -804,13 +804,13 @@ class JobDetail(flask_restful.Resource):
                     'spider_freq': job_instance.spider_freq,
                     'run_times': job_instance.run_type,
                     'video_upload_time': job_instance.upload_time_type,
-                    'video_time': str(job_instance.video_time_short) + '~' + str(job_instance.video_time_long),
+                    'video_time': str(job_instance.video_time_short//60) + '~' + str(job_instance.video_time_long//60),
                     'enabled': job_instance.enabled,
                     'server': daemon or 'auto',
                     'upload_time_start_date': job_instance.upload_time_start_date.strftime('%Y-%m-%d'),
                     'upload_time_end_date': job_instance.upload_time_end_date.strftime('%Y-%m-%d'),
-                    'video_time_short': job_instance.video_time_short,
-                    'video_time_long': job_instance.video_time_long,
+                    'video_time_short': job_instance.video_time_short//60,
+                    'video_time_long': job_instance.video_time_long//60,
                     'pri': job_instance.pri,
                     'create_time': job_instance.date_created.strftime('%Y-%m-%d %H:%M:%S'),
                     'update_time': job_instance.date_modified.strftime('%Y-%m-%d %H:%M:%S'),
@@ -964,8 +964,10 @@ class JobDetailCtrl(flask_restful.Resource):
                 #                                       or job_instance.upload_time_start_date
                 # job_instance.upload_time_end_date = post_data.get('upload_time_end_date') \
                 #                                     or job_instance.upload_time_end_date
-                job_instance.video_time_short = post_data.get('video_time_short') or job_instance.video_time_short
-                job_instance.video_time_long = post_data.get('video_time_long') or job_instance.video_time_long
+                if post_data.get('video_time_short'):
+                    job_instance.video_time_short = int(post_data.get('video_time_short')) * 60
+                if post_data.get('video_time_long'):
+                    job_instance.video_time_long = int(post_data.get('video_time_long')) * 60
                 # if post_data.get('daemon') != 'auto':
                 #     spider_args = []
                 #     if post_data.get('spider_arguments'):
